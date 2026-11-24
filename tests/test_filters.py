@@ -352,3 +352,42 @@ def test_required_language_missing_from_profile_is_rejected(text):
 )
 def test_language_in_profile_or_optional_passes(text):
     assert run(text).verdict is Verdict.PASS
+
+
+# -- regressions found on real postings ----------------------------------------------------
+
+
+def test_export_control_wording_is_not_a_visa_blocker():
+    text = (
+        "Any offer may be conditioned on your authorization to receive software controlled "
+        "under US export laws without sponsorship for an export license."
+    )
+    assert run(text, location="New York, NY", profile=visa_profile()).verdict is Verdict.PASS
+
+
+def test_sponsored_benefits_and_executive_sponsors_are_not_visa_sponsorship():
+    text = "100% employer-sponsored group medical plan. Build executive sponsorship programs."
+    assert run(text).verdict is Verdict.PASS
+    text += " We do not offer visa sponsorship."
+    assert "VISA_NO_SPONSORSHIP" in run(text, "New York, NY").codes
+
+
+def test_conflicting_sponsorship_is_harmless_where_the_user_may_work():
+    text = "We sponsor visas for strong candidates. We do not offer sponsorship for this role."
+    assert run(text, location="Berlin, Germany").verdict is Verdict.PASS
+
+
+def test_no_sponsorship_in_a_region_that_is_allowed_but_not_authorized_needs_a_check():
+    # "Europe" is somewhere the user would work, but it does not prove their right to work
+    decision = run("We cannot sponsor visas.", location="Remote - Europe")
+    assert decision.verdict is Verdict.CHECK
+    assert codes(decision) == {"SPONSORSHIP_LOCATION_UNKNOWN"}
+
+
+def test_fluently_counts_as_a_language_requirement():
+    assert run("You can speak English and French fluently.").verdict is Verdict.REJECT
+
+
+@pytest.mark.parametrize("location", ["In-Office", "Hybrid", "In person"])
+def test_workplace_mode_words_alone_are_an_unclear_location(location):
+    assert codes(run(location=location)) == {"LOCATION_UNCLEAR"}

@@ -81,6 +81,11 @@ _NO_SPONSOR = [
     re.compile(r"\bsponsor\w*\b[^.]{0,25}?\b(?:not|isn't|unavailable)\b"),
 ]
 _SPONSOR_WORD = re.compile(r"\bsponsor")
+# "sponsor" used in other senses: export licences, benefits, executive sponsors, events
+_NOT_VISA_SPONSOR = re.compile(
+    r"\bexport\b|employer[- ]sponsored|\bexecutive\b|\bengagement\b|\bbin sponsor|"
+    r"\bsponsored (?:group|plan|health|benefit)|\bsponsor(?:ship)? (?:program|event|conference)"
+)
 _REQUIRE_SPONSOR = re.compile(r"\brequire\w*\b[^.]{0,30}\bsponsor")
 _WORK_AUTH = re.compile(
     r"\b(?:authori[sz]ed|eligible|permitted|entitled|legally (?:able|allowed)|right)\s+"
@@ -109,7 +114,7 @@ def rule_visa(job: Job, profile: Profile) -> list[Reason]:
     reasons: list[Reason] = []
     for sentence in sentences(job.description):
         lower = sentence.lower()
-        if _SPONSOR_WORD.search(lower):
+        if _SPONSOR_WORD.search(lower) and not _NOT_VISA_SPONSOR.search(lower):
             if _is_no_sponsor(lower):
                 negative.append(sentence)
             elif not _REQUIRE_SPONSOR.search(lower):
@@ -120,10 +125,11 @@ def rule_visa(job: Job, profile: Profile) -> list[Reason]:
             foreign = contains_word(place, _KNOWN_PLACES) and not contains_word(place, regions)
             if foreign:
                 reasons.append(Reason("WORK_AUTH_REQUIRED", Verdict.REJECT, snippet(sentence)))
-    if negative and positive:
-        reasons.append(Reason("SPONSORSHIP_CONFLICT", Verdict.CHECK, snippet(negative[0])))
-    elif negative and not location_authorized:
-        if _location_unclear(job.location):
+    if negative and not location_authorized:
+        if positive:
+            reasons.append(Reason("SPONSORSHIP_CONFLICT", Verdict.CHECK, snippet(negative[0])))
+        elif _location_unclear(job.location) or contains_word(location, profile.locations.allowed):
+            # The user would work there but nothing proves they may: ask, do not reject.
             reasons.append(
                 Reason("SPONSORSHIP_LOCATION_UNKNOWN", Verdict.CHECK, snippet(negative[0]))
             )
@@ -240,6 +246,7 @@ def rule_experience(job: Job, profile: Profile) -> list[Reason]:
 # -- location ---------------------------------------------------------------------------
 
 _LOCATION_FILLER = re.compile(
+    r"\bin[- ]office\b|\bin[- ]person\b|"
     r"\b(?:remote|anywhere|worldwide|global|hybrid|on[- ]?site|flexible|distributed|home|"
     r"wfh|work|from|based|office|virtual|multiple|locations?|various|tbd|n/a)\b"
 )
@@ -304,7 +311,7 @@ _LANGUAGES = {
     "turkish": ["turkish"],
 }
 _LANGUAGE_NEEDED = re.compile(
-    r"\b(?:fluent|fluency|native|proficien\w+|business[- ]level|written and spoken|"
+    r"\b(?:fluen\w+|native|proficien\w+|business[- ]level|written and spoken|"
     r"spoken and written|c1|c2|must speak|must be able to speak|required|mandatory|"
     r"excellent command|strong command|command of)\b"
 )
