@@ -1,80 +1,233 @@
 # jobgate
 
-> **Status: early development (Phase 3 - CLI and reports).** The full pipeline runs from the
-> command line. Install notes, example output and limitations are still to come.
+jobgate is an open-source job search helper for new graduates. It reads **public** job
+postings from ATS job boards (Greenhouse, Lever, Ashby), drops the ones with application
+blockers up front (visa, citizenship or clearance, video or take-home requirements, years of
+experience, language, location, time zone), and ranks the rest 0-100 with a reason for every
+number.
 
-jobgate is an open-source job search helper for new graduates. It pulls publicly
-available postings from ATS job boards, screens out application blockers up front
-(visa, citizenship, video requirements, years of experience, language, location),
-and scores what is left against your CV profile, with a reason for every number.
+**It never applies for you.** There is no auto-apply and there will not be one. You read
+the shortlist and submit applications yourself.
 
-**It never applies for you.** There is no auto-apply and there will not be one. You
-read the shortlist and submit applications yourself.
+> **Status: early development.** The whole pipeline runs from the command line. The filter's
+> accuracy has not been independently verified yet, so this README makes no accuracy claim.
+> See [Limitations](#limitations).
 
-## Planned pipeline
+## The problem
 
-1. **Fetch** public postings from Greenhouse, Lever and Ashby (no login, no HTML scraping).
-2. **Normalize** every posting into a single `Job` schema.
-3. **Filter** with rule-based blockers; every decision carries a reason code.
-4. **Score** 0-100 with an explainable breakdown driven by YAML weights.
-5. **Store and report** in SQLite, with Markdown and CSV reports.
+New-grad search means opening hundreds of postings only to find, three paragraphs down,
+"no visa sponsorship", "must hold a security clearance", "5+ years", or "record a video
+introduction". jobgate reads those sentences for you, tells you which rule fired and why,
+and sorts what is left. When a posting is unclear or contradicts itself it says **check**
+instead of silently throwing it away.
 
-Decisions are always rule-based. An optional local LLM (Ollama) may only reword the
-explanation text; it never changes a filter decision or a score.
+## Set up in 10 minutes
 
-## Development
-
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
-pre-commit install   # enables the secret scan (gitleaks) and ruff on every commit
-pytest
-ruff check . && ruff format --check .
-```
-
-## Quick look (development install)
+You need Python 3.12 or newer and git. Nothing else, and no account or API key.
 
 ```bash
-cp profile.example.yaml profile.yaml        # edit: where you may work, languages, years
-cp companies.example.yaml companies.yaml    # edit: which company boards to read
-jobgate companies validate
-jobgate run                                 # fetch -> filter -> score -> report
-# reports/report.md and reports/report.csv; `jobgate --help` lists every command
-jobgate mark <id> applied                   # id is shown in the report
+git clone https://github.com/huseyinbuyukbayram1/jobgate.git
+cd jobgate
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .                             # about 10 seconds
+
+cp profile.example.yaml profile.yaml         # then edit it: see "Your profile" below
+cp companies.example.yaml companies.yaml     # 10 public company boards to start with
+jobgate companies validate                   # OK: 10 companies, 10 active (...)
+
+jobgate run                                  # fetch -> filter -> score -> report
 ```
 
-## Profile
+`jobgate run` takes about a minute for the 10 example companies (it waits between requests on
+purpose). Then open `reports/report.md`, or `reports/report.csv` in a spreadsheet.
 
-Copy `profile.example.yaml` (a fictional person) to `profile.yaml` and edit it. It tells the
-filter where you may work, which languages you speak, how many years of experience is too
-much, and whether video or take-home requirements should be rejected.
+After you apply to something, or decide it is not for you:
 
-## Privacy
+```bash
+jobgate mark 42825177 applied        # the id is printed in the report
+jobgate mark 1b56ac85 dropped --note "needs on-site"
+```
 
-Personal files (`profile.yaml`, `*.db`, `.env`, `cv/`) are git-ignored. Only
-`*.example.*` files live in the repository, and the example profile belongs to a
-fictional person.
+Running any command twice never creates duplicates, and the second `jobgate run` re-uses
+the day's fetch cache instead of hitting the job boards again.
+
+### Your profile
+
+`profile.yaml` (git-ignored; start from the fictional `profile.example.yaml`) says where you may
+work, which languages you speak, how many years of experience is too much, and what you want.
+The filter reads everything above `preferences`; the score reads `preferences`. An abridged
+example (the full commented file is `profile.example.yaml`):
+
+```yaml
+work_authorization:
+  regions: [germany, ireland, eu]       # where you may work without sponsorship
+citizenships: [german, eu]
+security_clearance: false
+max_experience_years: 2                 # reject postings that ask for more
+languages: [english, german]
+locations:
+  allowed: [germany, berlin, ireland, dublin, europe, eu]
+blockers:
+  video_requirement: reject             # reject | ignore
+  take_home_assignment: reject
+preferences:                            # used only by the score
+  target_roles: [software engineer, backend engineer]
+  technologies: [python, sql, docker]
+  work_modes: [remote, hybrid]
+```
+
+Scoring weights live in YAML too: copy `scoring.example.yaml` to `scoring.yaml`.
+
+## Example output
+
+A real run with the example profile and the 10 example companies (public postings, trimmed):
+
+```text
+$ jobgate run
+Fetched 2645 postings from 10 of 10 companies (2645 new, 0 no longer listed).
+Filtered 2645 postings: 52 pass, 235 check, 2358 reject.
+Scored 287 postings.
+Wrote reports/report.md and reports/report.csv.
+  63: role 15, technology 20, level 20, location 8  Security Engineer, New Grad @ Stripe
+  58: role 30, level 20, location 8  Software Engineer, Intern (Summer or Winter) @ Stripe
+  58: role 30, level 20, location 8  Software Engineer, New Grad @ Stripe
+```
+
+`reports/report.md` has three sections: **Ranked matches**, **Needs a check** (each with the
+sentence that made the filter unsure) and a count of **Rejected** postings per reason code.
+The numbers change every day because the boards change; the shape does not.
+
+```markdown
+### 3. 58: role 30, level 20, location 8 — [Software Engineer, New Grad](https://stripe.com/jobs/search?gh_jid=8130881)
+Stripe · Dublin · posted 2026-08-31 · id `42825177` · status: found
+```
+
+`58: role 30, level 20, location 8` reads as: 58 out of 100, made of 30 role points, 20 level
+points and 8 location points (parts that scored zero are left out).
+
+## How it works
+
+```mermaid
+flowchart LR
+    C[companies.yaml] --> F1[1 Fetch<br/>Greenhouse / Lever / Ashby<br/>public JSON, cached]
+    F1 --> N[2 Normalize<br/>one Job schema]
+    N --> FI[3 Filter<br/>rules + profile.yaml<br/>pass / check / reject + reason code]
+    FI -->|pass, check| S[4 Score<br/>0-100 + breakdown<br/>weights in YAML]
+    FI -->|reject| DB
+    S --> DB[(5 SQLite<br/>jobs, decisions,<br/>status history)]
+    DB --> R[Markdown + CSV report]
+    S -. optional, off by default .-> L[LLM rationale<br/>Ollama or cloud API<br/>wording only]
+    L -.-> DB
+```
+
+Every decision is **rule-based**. The optional LLM (see below) only adds a sentence of wording
+and cannot change a verdict or a score. More detail: [docs/architecture.md](docs/architecture.md).
+
+### Reason codes
+
+A rejected or "check" posting always carries a reason code and the sentence that triggered it,
+for example `VISA_NO_SPONSORSHIP`, `CITIZENSHIP_REQUIRED`, `CLEARANCE_REQUIRED`,
+`VIDEO_REQUIRED`, `EXPERIENCE_TOO_HIGH`, `LANGUAGE_NOT_IN_PROFILE`, `LOCATION_OUTSIDE_PROFILE`,
+`SPONSORSHIP_CONFLICT` (one sentence says "we sponsor", another says "no sponsorship").
+When the text is ambiguous the rule prefers **check** over a wrong **reject**.
+
+## Optional: a short LLM rationale
+
+Off by default; nothing needs it. If you run [Ollama](https://ollama.com) locally you can get a
+one- or two-sentence plain-English rationale under each score:
+
+```bash
+ollama pull llama3.2
+cp llm.example.yaml llm.yaml        # set enabled: true
+jobgate run                         # or just: jobgate explain
+```
+
+- The LLM is sent only the job title, company, location and the score breakdown. It is not sent
+  the posting text, your profile or your CV.
+- Its answer is stored in a separate column and printed as a `>` line. It is never read back by
+  the filter or the scorer, so it cannot change a decision.
+- If Ollama is not running, jobgate prints `LLM unavailable (...)` and continues with the
+  rule-based explanation. There is a test for that, and a test that the LLM is never even
+  constructed while it is off.
+- A cloud API is possible through `provider: openai_compatible` in `llm.yaml`. The API key is
+  optional and is read from an environment variable you name; it is never stored in a file.
+  This provider is covered by tests with a fake server, but I have not run it against a
+  real cloud service. The Ollama client follows Ollama's documented `/api/chat` request and
+  response and is covered by the same kind of tests; it has not been run against a real Ollama
+  server yet either.
+
+## What it does not do
+
+- **It does not apply for you**, fill forms, send emails or message recruiters. Ever.
+- It does not scrape career pages, log in anywhere or get around bot protection. It only calls
+  the public job-board endpoints that the three ATS vendors document.
+- It does not read or upload your CV. Your profile is a small YAML file you write yourself.
+- It is not a web app, has no accounts and sends no notifications.
+- It does not decide with an LLM. Filters and scores are rules you can read.
+
+## Limitations
+
+- **Accuracy is not verified.** The filter has been checked against two small hand-collected
+  sets of postings whose labels are *suggested* by the tooling and have not yet been confirmed by
+  a human. Until they are, no accuracy figure is published. Treat the output as a time-saver
+  for reading, not as a guarantee: a posting the filter rejects may have been fine, and one it
+  passes may still hide a blocker. The `check` list exists because of that.
+- English-language postings only; rules are sentence-level regular expressions.
+- Scoring is keyword-based. A title like "Technical Support Engineer" earns partial role points
+  because it contains "engineer". It is a ranking aid, not a judgement of fit.
+- Some boards write only "In-Office" or "Hybrid" in the location field; those go to **check**.
+- Only Greenhouse, Lever (global host) and Ashby are supported. Lever's EU host is not.
+- Test runs so far were on macOS with Python 3.14; CI runs Python 3.12 and 3.13.
+- A company that is not on a supported ATS cannot be added.
+
+## Roadmap
+
+- Confirm the evaluation labels by hand and publish the measured accuracy with the
+  false-rejection rate next to it.
+- Better role matching in the score (titles, not just keywords).
+- Recognise more video-requirement wordings and use city names found in the text when the
+  location field is vague.
+- Lever EU host.
+- Confirm each ATS's terms of use (see below).
 
 ## How this project is built
 
 This project is developed with AI assistance: the code is written with
 [Claude Code](https://claude.com/claude-code). The design decisions, the rules and the
-test labelling are done by the repository owner.
+test labelling are done by the repository owner, who reviews and approves each phase.
 
 ## Data sources and terms
 
-Only public, unauthenticated job-board endpoints are used; see [docs/sources.md](docs/sources.md)
-for the verified endpoint shapes, politeness rules and known differences from the docs.
+Only public, unauthenticated job-board endpoints are used. [docs/sources.md](docs/sources.md)
+lists the verified endpoint shapes, the politeness rules (explicit User-Agent, delay between
+requests, timeout, at most 3 retries with back-off, daily cache) and known differences from
+the docs.
 
-| ATS | Official API documentation |
-|-----|----------------------------|
-| Greenhouse | <https://docs.greenhouse.io/job-board.html> |
-| Lever | <https://github.com/lever/postings-api> |
-| Ashby | <https://developers.ashbyhq.com/docs/public-job-posting-api> |
+| ATS | Official API documentation | Terms of use |
+|-----|----------------------------|--------------|
+| Greenhouse | <https://docs.greenhouse.io/job-board.html> | to be verified |
+| Lever | <https://github.com/lever/postings-api> | to be verified |
+| Ashby | <https://developers.ashbyhq.com/docs/public-job-posting-api> | to be verified |
 
-The documentation pages above do not link a separate terms-of-use page for these
-public endpoints, so none is listed yet. Any source can be switched off from the
-companies file (`sources:`) if its terms change.
+The documentation pages above do not link a separate terms-of-use page for these public
+endpoints, so no link is given and none is invented. Until that is checked, please read each
+vendor's own terms before running jobgate at scale. Any source can be switched off from the
+companies file (`sources:`) if its terms turn out to forbid this use.
+
+## Privacy
+
+Personal files (`profile.yaml`, `llm.yaml`, `*.db`, `.env`, `cv/`, `scoring.yaml`, `reports/`) are
+git-ignored. Only `*.example.*` files live in the repository, and the example profile belongs to
+a fictional person. A secret scan runs on every commit (pre-commit) and in CI.
+
+## Development
+
+```bash
+pip install -e ".[dev]"
+pre-commit install   # secret scan (gitleaks) and ruff on every commit
+pytest               # no network, no LLM: tests use recorded fixtures and fakes
+ruff check . && ruff format --check .
+```
 
 ## License
 
