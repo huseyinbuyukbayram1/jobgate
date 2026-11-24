@@ -1,6 +1,6 @@
 # Architecture
 
-Status: skeleton (Phase 0). Filled in as each stage is built.
+Status: all five stages and the optional LLM layer are built.
 
 jobgate is a five-stage pipeline. Each stage is independently testable and talks to
 the next one through plain, typed data.
@@ -93,3 +93,34 @@ same database always gives the same bytes. Postings you marked `dropped` are hid
 **CLI (`cli.py`, typer).** Global options go before the command (`jobgate --db my.db run`).
 `run` = `fetch` → `filter` → `score` → `report`; every step is a function shared with its own
 command. Errors are printed as `error: ...` with exit code 2 (bad input) or 1 (nothing fetched).
+
+## Optional LLM layer (Phase 4): `llm.py`
+
+```mermaid
+flowchart LR
+    F[Filter verdict] --> S[Score + explanation]
+    S --> D[(decisions table)]
+    S -- "title, company, location,<br/>score breakdown only" --> L[LLM client<br/>Ollama / OpenAI-compatible]
+    L -- "one short line" --> RC[(rationale column)]
+    D --> R[Report]
+    RC --> R
+```
+
+The arrows only go one way: the LLM receives facts that the rules already produced and writes
+into its own `rationale` column. Nothing it returns is parsed, so it cannot influence a
+verdict or a score.
+
+- **Off by default.** `load_llm_config` returns `enabled: false` when `llm.yaml` does not exist.
+  While off, no client is constructed (tested).
+- **Clients.** `OllamaClient` posts to `/api/chat` with `stream: false`; `OpenAICompatibleClient`
+  posts to `/chat/completions` and reads an optional key from the environment variable named in
+  the config. Both turn every network, HTTP and parse failure into `LlmError`.
+- **Failure policy.** `write_rationales` never raises. On the first `LlmError` it logs a warning
+  and stops, so an absent Ollama costs one timeout, not one per posting; the CLI prints
+  `LLM unavailable (...)` and the run continues with the rule-based explanation.
+- **Hygiene.** The prompt tells the model to add no facts or numbers; the answer is cut to one
+  plain line of at most 300 characters. A rationale is generated once per posting and cleared
+  only when the score explanation changes.
+- **Tests** use `httpx.MockTransport` and a fake client; the suite never needs Ollama. One test
+  runs the whole pipeline with and without a (hostile) fake LLM and compares every verdict,
+  reason and score.

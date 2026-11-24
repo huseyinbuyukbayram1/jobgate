@@ -13,6 +13,30 @@
 
 Newest entry first.
 
+## 2026-11-24 - Phase 4: optional LLM rationale, README, CHANGELOG
+
+**Done**
+- CI fix first: `test_help_has_no_double_negative_flags` failed in CI because Rich coloured and wrapped `--help`. Reproduced locally with `FORCE_COLOR=1 COLUMNS=60`; the CLI tests now run with `NO_COLOR`, `TERM=dumb`, wide columns and strip ANSI codes (commit `deefe28`, CI green).
+- `llm.py` + `llm.example.yaml`: optional rationale. Off by default (`llm.yaml` is git-ignored). `OllamaClient` (`POST /api/chat`, `stream:false`, checked against Ollama's docs via Context7), `OpenAICompatibleClient` (optional key from a named environment variable). Only title, company, location and the score breakdown are sent.
+- The rationale is stored in its own `decisions.rationale` column (older databases get the column on open), shown as a `>` line in the report and as a CSV column. It is cleared only when the score explanation changes, so a second run makes no new LLM calls.
+- If the LLM is unreachable: one warning, one `LLM unavailable (...)` line, the run continues. `jobgate explain` is a new command; `run` calls it only when enabled.
+- README rewritten (problem, 10-minute setup, example output, mermaid diagram, optional LLM, what it does not do, limitations, roadmap, AI-assisted disclosure, ATS docs table with terms marked "to be verified"), CHANGELOG (Unreleased only), architecture doc with the LLM diagram.
+- `tests/test_docs.py` guards the gate: README and CHANGELOG contain no accuracy percentage and no version tag, the profile snippet in the README is a valid profile, and every command the README shows exists.
+- 261 tests, ruff clean.
+
+**Gate: met.** In a clean `git clone` + new venv: `pip install -e .` 7 s, `jobgate companies validate`, `jobgate run` ~48 s live (10 companies, 2,645 postings) with a ranked `report.md`; about a minute of work in total. With `llm.yaml` enabled and no Ollama installed, `jobgate explain` and `jobgate run` exit 0 with the warning.
+
+**Problems and fixes**
+- Name clash: `cli.make_client` (HTTP) vs `llm.make_client`; imported the LLM one as `build_llm_client` and exposed `make_llm_client` for tests to replace.
+- My first README profile snippet did not match the real profile schema; replaced it with an excerpt and added a test that loads it.
+
+**Assumptions / limits**
+- Ollama is not installed on this machine, and no cloud key was used: both LLM clients are tested only with fake servers. The unreachable-server path was run for real.
+- Terms-of-use links for the three ATS vendors are still unverified; the README says "to be verified".
+- Still open: the label-verification gate above (no accuracy number, no `v0.1.0` tag).
+
+**Next:** wait for the owner to verify labels and re-run the evaluation; then decide on a release.
+
 ## 2026-11-24 - Phase 3: scoring, SQLite, CLI, reports (+ held-out batch)
 
 **Done**
