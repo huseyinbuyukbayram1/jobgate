@@ -27,6 +27,7 @@ class FetchReport:
     jobs: list[Job] = field(default_factory=list)
     failures: list[CompanyFailure] = field(default_factory=list)
     companies_ok: int = 0
+    succeeded: list[tuple[str, str]] = field(default_factory=list)
 
 
 def fetch_all(
@@ -45,6 +46,7 @@ def fetch_all(
             kind, message = "unexpected", f"{type(exc).__name__}: {exc}"
         else:
             report.companies_ok += 1
+            report.succeeded.append((company.ats, company.name))
             for job in jobs:
                 if job.key not in seen:
                     seen.add(job.key)

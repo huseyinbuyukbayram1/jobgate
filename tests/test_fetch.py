@@ -112,3 +112,12 @@ def test_duplicate_postings_are_dropped(tmp_path):
     )
     report = fetch_all(cfg, make_client(tmp_path, router))
     assert len(report.jobs) == 2
+
+
+def test_report_lists_which_companies_succeeded(tmp_path):
+    cfg = config(
+        Company(name="Good", ats="lever", token="good"),
+        Company(name="Gone", ats="greenhouse", token="gone"),
+    )
+    report = fetch_all(cfg, make_client(tmp_path, router))
+    assert report.succeeded == [("lever", "Good")]
