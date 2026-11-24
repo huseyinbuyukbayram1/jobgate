@@ -216,7 +216,7 @@ companies file (`sources:`) if its terms turn out to forbid this use.
 
 ## Privacy
 
-Personal files (`profile.yaml`, `llm.yaml`, `*.db`, `.env`, `cv/`, `scoring.yaml`, `reports/`) are
+Personal files (`profile.yaml`, `companies.yaml`, `llm.yaml`, `*.db`, `.env`, `cv/`, `scoring.yaml`, `reports/`) are
 git-ignored. Only `*.example.*` files live in the repository, and the example profile belongs to
 a fictional person. A secret scan runs on every commit (pre-commit) and in CI.
 

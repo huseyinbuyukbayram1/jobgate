@@ -20,3 +20,4 @@ dist/
 scoring.yaml
 reports/
 llm.yaml
+companies.yaml
