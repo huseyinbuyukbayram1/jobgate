@@ -1,6 +1,6 @@
 # jobgate
 
-> **Status: early development (Phase 0 – project skeleton).** Nothing here is usable yet.
+> **Status: early development (Phase 1 - fetching).** The fetch layer works as a library; there is no CLI yet.
 
 jobgate is an open-source job search helper for new graduates. It pulls publicly
 available postings from ATS job boards, screens out application blockers up front
@@ -45,8 +45,18 @@ test labelling are done by the repository owner.
 
 ## Data sources and terms
 
-Terms-of-use links for each supported ATS will be listed here once the adapters land
-in Phase 1. Sources can be switched off from configuration if their terms change.
+Only public, unauthenticated job-board endpoints are used; see [docs/sources.md](docs/sources.md)
+for the verified endpoint shapes, politeness rules and known differences from the docs.
+
+| ATS | Official API documentation |
+|-----|----------------------------|
+| Greenhouse | <https://docs.greenhouse.io/job-board.html> |
+| Lever | <https://github.com/lever/postings-api> |
+| Ashby | <https://developers.ashbyhq.com/docs/public-job-posting-api> |
+
+The documentation pages above do not link a separate terms-of-use page for these
+public endpoints, so none is listed yet. Any source can be switched off from the
+companies file (`sources:`) if its terms change.
 
 ## License
 

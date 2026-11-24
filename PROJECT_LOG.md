@@ -2,6 +2,32 @@
 
 Newest entry first.
 
+## 2026-11-24 - Phase 1: Job schema, adapters, HTTP layer, companies reader
+
+**Done**
+- `Job` schema (pydantic v2) with a stable `key` for de-duplication; `workplace_type` added as an optional field because scoring needs work mode later.
+- Endpoints verified by hand (curl, 3+ companies per ATS) and against official docs; differences recorded in `docs/sources.md`.
+- `HttpClient`: explicit User-Agent, 1 s throttle, timeout, max 3 retries with exponential backoff, daily on-disk cache (`.jobgate_cache/`, git-ignored).
+- Greenhouse, Lever and Ashby adapters, each with a pure `parse` tested on synthetic fixtures (no network in tests).
+- `companies.py` reader/validator with per-source on/off switches; `companies.example.yaml` with 10 neutral public companies.
+- `fetch_all`: a failing company is recorded and the run continues.
+- 51 tests, ruff clean.
+
+**Gate result (real network, 30 companies)**: 27 fetched, 3 failed, run continued, 5,793 postings (Greenhouse 3,696, Lever 757, Ashby 1,340). The 3 failures: one board I broke on purpose, two stale tokens (HTTP 404). Every posting had a description, location and date. The 30-company list lives outside the repo (scratchpad), not committed.
+
+**Problems and fixes**
+- Docs vs. live differences: Greenhouse list has `first_published`, Lever has `createdAt`, Ashby has `id`, none documented. Adapters use them but fall back to documented fields.
+- Lever pagination is undocumented; checked live that the default returns everything (Palantir 305 postings, `skip=305` returned 0).
+- No terms-of-use link found in any of the three API docs; none claimed in README. Needs the owner's confirmation.
+
+**Assumptions**
+- Lever EU hosting (`api.eu.lever.co`) not supported yet.
+- Unlisted Ashby jobs (`isListed: false`) are skipped.
+- Cache is per calendar day (local date), matching "do not hit the same endpoint twice in one night".
+
+**Next**
+- Phase 2: profile schema and example, blocker filter rules with reason codes, labelled set (CSV of candidates for the owner to verify), accuracy report.
+
 ## 2026-11-24 - Phase 0: skeleton, CI, secret scan
 
 **Done**
