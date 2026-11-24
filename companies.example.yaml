@@ -15,7 +15,7 @@ sources:
   ashby: true
 
 companies:
-  - {name: Stripe, ats: greenhouse, token: stripe}
+  - {name: Datadog, ats: greenhouse, token: datadog}
   - {name: Airbnb, ats: greenhouse, token: airbnb}
   - {name: Cloudflare, ats: greenhouse, token: cloudflare}
   - {name: Figma, ats: greenhouse, token: figma}

@@ -51,8 +51,8 @@ purpose). Then open `reports/report.md`, or `reports/report.csv` in a spreadshee
 After you apply to something, or decide it is not for you:
 
 ```bash
-jobgate mark 42825177 applied        # the id is printed in the report
-jobgate mark 1b56ac85 dropped --note "needs on-site"
+jobgate mark 2aea9a3d applied        # the id is printed in the report
+jobgate mark 038b1275 dropped --note "needs on-site"
 ```
 
 Running any command twice never creates duplicates, and the second `jobgate run` re-uses
@@ -91,13 +91,13 @@ A real run with the example profile and the 10 example companies (public posting
 
 ```text
 $ jobgate run
-Fetched 2645 postings from 10 of 10 companies (2645 new, 0 no longer listed).
-Filtered 2645 postings: 52 pass, 235 check, 2358 reject.
-Scored 287 postings.
+Fetched 2263 postings from 10 of 10 companies (2263 new, 0 no longer listed).
+Filtered 2263 postings: 47 pass, 222 check, 1994 reject.
+Scored 269 postings.
 Wrote reports/report.md and reports/report.csv.
-  63: role 15, technology 20, level 20, location 8  Security Engineer, New Grad @ Stripe
-  58: role 30, level 20, location 8  Software Engineer, Intern (Summer or Winter) @ Stripe
-  58: role 30, level 20, location 8  Software Engineer, New Grad @ Stripe
+  53: role 15, technology 10, level 20, location 8  Software Engineering Intern @ Datadog
+  40: technology 30, location 10  Senior Partner Solutions Architect (Pan-EMEA GSI) @ Datadog
+  38: technology 30, location 8  Technical Account Manager 2 - Dublin/London @ Datadog
 ```
 
 `reports/report.md` has three sections: **Ranked matches**, **Needs a check** (each with the
@@ -105,12 +105,12 @@ sentence that made the filter unsure) and a count of **Rejected** postings per r
 The numbers change every day because the boards change; the shape does not.
 
 ```markdown
-### 3. 58: role 30, level 20, location 8 — [Software Engineer, New Grad](https://stripe.com/jobs/search?gh_jid=8130881)
-Stripe · Dublin · posted 2026-08-31 · id `42825177` · status: found
+### 1. 53: role 15, technology 10, level 20, location 8 — [Software Engineering Intern](https://careers.datadoghq.com/detail/8114161/?gh_jid=8114161)
+Datadog · Madrid, Spain · posted 2026-09-08 · id `2aea9a3d` · status: found
 ```
 
-`58: role 30, level 20, location 8` reads as: 58 out of 100, made of 30 role points, 20 level
-points and 8 location points (parts that scored zero are left out).
+`53: role 15, technology 10, level 20, location 8` reads as: 53 out of 100, made of 15 role
+points, 10 technology points, 20 level points and 8 location points (parts that scored zero are left out).
 
 ## How it works
 

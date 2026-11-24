@@ -16,7 +16,7 @@ on disk per calendar day so the same endpoint is not requested twice on one day.
 
 - Endpoint: `GET https://boards-api.greenhouse.io/v1/boards/{board_token}/jobs?content=true`
 - Docs: <https://developers.greenhouse.io/job-board.html> (opened 2026-11-24: redirects to <https://docs.greenhouse.io/job-board.html>, HTTP 200)
-- Checked by hand: `stripe`, `airbnb`, `cloudflare` (all HTTP 200, JSON).
+- Checked by hand: `airbnb`, `cloudflare` (HTTP 200, JSON). `datadog` was checked with jobgate's own `fetch` on 2026-11-24 (386 postings).
 - `content=true` is required to get the description (plus departments and offices).
 - The description is HTML encoded as entities; `html_to_text` unescapes it.
 - **Docs vs. live:** the docs list `first_published` only for the single-job endpoint. The live list response also carries it, so the adapter uses `first_published` and falls back to the documented `updated_at`.
