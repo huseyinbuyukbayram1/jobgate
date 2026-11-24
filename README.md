@@ -1,6 +1,6 @@
 # jobgate
 
-> **Status: early development (Phase 1 - fetching).** The fetch layer works as a library; there is no CLI yet.
+> **Status: early development (Phase 2 - filtering).** Fetching and the blocker filter work as a library; there is no CLI yet.
 
 jobgate is an open-source job search helper for new graduates. It pulls publicly
 available postings from ATS job boards, screens out application blockers up front
@@ -30,6 +30,12 @@ pre-commit install   # enables the secret scan (gitleaks) and ruff on every comm
 pytest
 ruff check . && ruff format --check .
 ```
+
+## Profile
+
+Copy `profile.example.yaml` (a fictional person) to `profile.yaml` and edit it. It tells the
+filter where you may work, which languages you speak, how many years of experience is too
+much, and whether video or take-home requirements should be rejected.
 
 ## Privacy
 
