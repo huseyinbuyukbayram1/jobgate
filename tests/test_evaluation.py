@@ -143,3 +143,21 @@ def test_correct_decisions_carry_the_expected_reason_code(profile):
         expected = outcome.posting.suggested_reason
         if expected and outcome.correct:
             assert expected in outcome.decision.codes, outcome.posting.id
+
+
+# -- the held-out batch (filter was never tuned on it) -----------------------------------
+
+HELDOUT = REPO_ROOT / "tests" / "data" / "heldout_postings.csv"
+
+
+def test_heldout_batch_has_at_least_25_unverified_real_postings():
+    rows = load_labeled(HELDOUT)
+    assert len(rows) >= 25
+    assert all(r.source == "real" and r.source_url.startswith("https://") for r in rows)
+    assert not any(r.human_verified for r in rows)
+    assert all(len(r.excerpt) <= 400 for r in rows)
+
+
+def test_heldout_batch_does_not_overlap_the_development_set():
+    dev_urls = {r.source_url for r in load_labeled(DATA)}
+    assert not dev_urls & {r.source_url for r in load_labeled(HELDOUT)}

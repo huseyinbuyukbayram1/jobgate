@@ -35,3 +35,21 @@ good posting is the costly mistake.
   optimistic. A fresh, unseen batch labelled by the owner is the honest test.
 - Real excerpts come from 30 well-known companies fetched on 2026-11-24 and skew toward
   sales and customer-facing roles, where language and location rules appear most often.
+
+## Held-out batch
+
+`tests/data/heldout_postings.csv` is a second set of 28 real junior and new-grad software,
+AI and data engineering postings from 23 companies that were **not** used to build the first
+set. Its labels were written down and committed **before the filter was ever run on it**, and
+the filter must not be changed to fit it (a later fix would turn it into a second development
+set). Same columns and same verification steps as above.
+
+Known limits of this batch:
+
+- It has no `uncertain` rows. Real junior postings almost never contain wording that is
+  truly ambiguous, so the "check" class is only covered by the first set.
+- Many rows are blocked by location alone (most new-grad postings are in the US). That is
+  realistic for the example profile but it means the batch tests location more than the
+  other rules.
+- Two rows (Cloudflare, location field `In-Office`) put the real city only in the text, which
+  the filter does not read for location. Their labels follow what a human would conclude.
