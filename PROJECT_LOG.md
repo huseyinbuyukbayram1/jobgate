@@ -2,6 +2,36 @@
 
 Newest entry first.
 
+## 2026-11-24 - Phase 2: profile, blocker filter, labelled set, accuracy report
+
+**Done**
+- `profile.py` + `profile.example.yaml` (fictional person; no name, no e-mail): work-authorization regions, citizenships, clearance, max years of experience, languages, allowed locations, time zones, video/take-home settings.
+- `filters.py`: seven rules (visa, citizenship/clearance, video/take-home, experience, location, time zone, language). Every reason has a code and the triggering sentence; reject > check > pass.
+- 40-row labelled set (`tests/data/labeled_postings.csv`): 20 blocked, 13 clear, 7 uncertain; 28 short real quotes with source links, 12 synthetic. All `human_verified=false`.
+- `evaluation.py` + `docs/filter_report.md`; `docs/labeling.md` explains how the owner verifies labels.
+- 149 tests, ruff clean.
+
+**Gate status: partially met, by design**
+- Human-verified rows: 0 of 40, so the real >= 90% target cannot be claimed yet. The report says so explicitly.
+- Preliminary (unverified labels): accuracy 97.5% (39/40), false rejection rate 0.0% (0/20), missed-block rate 0.0% (0/20). The one miss is a posting whose location field is only "Hybrid"; the filter says "check" instead of "reject" (the safe direction). These numbers are optimistic because I tuned the filter while looking at these rows.
+
+**Problems and fixes (found by running the filter on real postings)**
+- "without sponsorship for an export license" (Cloudflare boilerplate on hundreds of postings) was read as a visa blocker. Sentences about export control, employer-sponsored benefits and executive sponsors are now ignored.
+- "speak English and Spanish fluently" was missed because "fluently" did not match; now `fluen\w+`.
+- "In-Office" as a location counted as outside the profile; workplace-mode words alone are now "unclear" (check).
+- "Remote - Europe" plus "no sponsorship" used to be rejected; now it is a check, because Europe is somewhere the user would work but does not prove their right to work there.
+- A conflicting sponsorship statement is harmless where the user may work; it no longer raises a check there.
+- I accidentally put the employer name into a test assertion; caught by the final grep, removed, and the unpushed commits were rewritten so it is not in history.
+
+**Assumptions**
+- Labels judged against the example profile (Germany/EU work rights, English + German, max 2 years).
+- Years rule uses the lower bound of a range ("2-5 years" asks 2); the threshold is the profile's `max_experience_years`.
+- Location is matched as whole words against the posting's location field only.
+
+**Next**
+- Owner: verify labels in the CSV (`docs/labeling.md`), then run `python -m jobgate.evaluation --out docs/filter_report.md`.
+- Phase 3: scoring with YAML weights, SQLite storage, CLI commands, Markdown/CSV report, idempotent re-runs.
+
 ## 2026-11-24 - Phase 1: Job schema, adapters, HTTP layer, companies reader
 
 **Done**
