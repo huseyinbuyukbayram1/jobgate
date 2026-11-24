@@ -225,18 +225,30 @@ _DEGREE_ALTERNATIVE = re.compile(
 )
 
 
-def rule_experience(job: Job, profile: Profile) -> list[Reason]:
-    reasons: list[Reason] = []
-    limit = profile.max_experience_years
-    for sentence in sentences(job.description):
+def experience_mentions(text: str) -> list[tuple[str, int]]:
+    """(sentence, required years) for every non-optional sentence that asks for years.
+
+    Public because the scorer reads the same numbers. For a range such as "3-5 years" the
+    lower bound counts; sentences that only list years as a plus or preference are skipped.
+    """
+    mentions: list[tuple[str, int]] = []
+    for sentence in sentences(text):
         lower = sentence.lower()
         if "experience" not in lower or is_soft(lower):
             continue
         lower = _NUMBER_WORD.sub(lambda m: _NUMBER_WORDS[m.group(1)], lower)
         bounds = [int(m.group(1)) for m in _YEARS.finditer(lower)]
-        if not bounds or max(bounds) <= limit:
+        if bounds:
+            mentions.append((sentence, max(bounds)))
+    return mentions
+
+
+def rule_experience(job: Job, profile: Profile) -> list[Reason]:
+    reasons: list[Reason] = []
+    for sentence, years in experience_mentions(job.description):
+        if years <= profile.max_experience_years:
             continue
-        if _DEGREE_ALTERNATIVE.search(lower):
+        if _DEGREE_ALTERNATIVE.search(sentence.lower()):
             reasons.append(Reason("EXPERIENCE_AMBIGUOUS", Verdict.CHECK, snippet(sentence)))
         else:
             reasons.append(Reason("EXPERIENCE_TOO_HIGH", Verdict.REJECT, snippet(sentence)))

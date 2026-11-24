@@ -17,3 +17,5 @@ dist/
 
 # Local fetch cache
 .jobgate_cache/
+scoring.yaml
+reports/

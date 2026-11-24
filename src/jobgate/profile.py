@@ -9,6 +9,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 BlockerMode = Literal["reject", "ignore"]
+WorkMode = Literal["remote", "hybrid", "onsite"]
 
 
 class ProfileError(Exception):
@@ -46,6 +47,17 @@ class Blockers(_Strict):
     take_home_assignment: BlockerMode = "reject"
 
 
+class Preferences(_Strict):
+    """What the scorer rewards. All words are matched case-insensitively."""
+
+    target_roles: list[str] = Field(default_factory=list)  # phrases matched against the title
+    avoid_roles: list[str] = Field(default_factory=list)  # a hit in the title scores role 0
+    technologies: list[str] = Field(default_factory=list)  # matched in title and description
+    work_modes: list[WorkMode] = Field(default_factory=lambda: ["remote", "hybrid"])
+
+    _norm = field_validator("target_roles", "avoid_roles", "technologies")(_lower)
+
+
 class Profile(_Strict):
     work_authorization: WorkAuthorization
     locations: Locations
@@ -55,6 +67,7 @@ class Profile(_Strict):
     languages: list[str] = Field(default_factory=lambda: ["english"])
     timezones: Timezones = Field(default_factory=Timezones)
     blockers: Blockers = Field(default_factory=Blockers)
+    preferences: Preferences = Field(default_factory=Preferences)
 
     _norm = field_validator("citizenships", "languages")(_lower)
 

@@ -1,0 +1,11 @@
+# Example scoring weights. Copy to scoring.yaml to change them (scoring.yaml is git-ignored).
+# The five weights must add up to 100: they are the maximum points of each component.
+weights:
+  role: 30          # job title vs. preferences.target_roles
+  technology: 30    # preferences.technologies found in the posting (allowed range 20-30)
+  level: 20         # junior / new-grad signals vs. senior signals and years asked
+  location: 10      # location match and work mode (remote / hybrid / onsite)
+  compensation: 10  # the posting discloses a pay range
+
+# Full technology points are given once this many of your technologies appear.
+technology_saturation: 3

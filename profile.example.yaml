@@ -51,3 +51,14 @@ timezones:
 blockers:
   video_requirement: reject
   take_home_assignment: reject
+
+# What the scorer rewards (it never changes a filter decision).
+preferences:
+  # Phrases matched against the job title; the closer the match, the higher the role score.
+  target_roles: [software engineer, backend engineer, machine learning engineer, data engineer]
+  # A hit in the title gives a role score of 0.
+  avoid_roles: [sales, account executive, recruiter, marketing]
+  # Matched in the title and description.
+  technologies: [python, sql, pytorch, docker, kubernetes, fastapi]
+  # remote | hybrid | onsite
+  work_modes: [remote, hybrid]
