@@ -1,0 +1,27 @@
+# Example companies file. Copy to companies.yaml and edit.
+#
+# Every entry is a well-known company with a public job board. The list is only a
+# neutral starting point: it says nothing about where anyone applied.
+#
+# token = the board name in the ATS URL:
+#   greenhouse: boards.greenhouse.io/<token>   (API: boards-api.greenhouse.io/v1/boards/<token>)
+#   lever:      jobs.lever.co/<token>
+#   ashby:      jobs.ashbyhq.com/<token>
+
+# Switch a whole source off here if its terms change or it misbehaves.
+sources:
+  greenhouse: true
+  lever: true
+  ashby: true
+
+companies:
+  - {name: Stripe, ats: greenhouse, token: stripe}
+  - {name: Airbnb, ats: greenhouse, token: airbnb}
+  - {name: Cloudflare, ats: greenhouse, token: cloudflare}
+  - {name: Figma, ats: greenhouse, token: figma}
+  - {name: Spotify, ats: lever, token: spotify}
+  - {name: Palantir, ats: lever, token: palantir}
+  - {name: Zoox, ats: lever, token: zoox}
+  - {name: Linear, ats: ashby, token: linear}
+  - {name: Notion, ats: ashby, token: notion}
+  - {name: Ramp, ats: ashby, token: ramp}
