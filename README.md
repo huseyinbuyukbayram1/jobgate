@@ -165,6 +165,32 @@ jobgate run                         # or just: jobgate explain
 - It is not a web app, has no accounts and sends no notifications.
 - It does not decide with an LLM. Filters and scores are rules you can read.
 
+## Evaluation
+
+The filter is checked against two small sets of real postings kept in `tests/data/`
+(short quotes with source links, no full texts): a development set the rules were tuned on, and
+a held-out set they were not tuned on. **Every label in both sets was suggested by the AI
+assistant that helped build this project.** A label only counts once the repository owner has
+set `human_verified=true` on its row.
+
+| Set | Rows | `human_verified=true` |
+|-----|------|-----------------------|
+| `labeled_postings.csv` (development) | 40 | 0 / 40 |
+| `heldout_postings.csv` (held-out) | 28 | 0 / 28 |
+
+No independent verification has been done, so **this project makes no accuracy claim**. The
+evaluation tool can be run any time, and it starts its report with the verified-over-total
+count:
+
+```bash
+python -m jobgate.evaluation --out docs/filter_report.md
+python -m jobgate.evaluation --set tests/data/heldout_postings.csv --heldout --out docs/heldout_report.md
+```
+
+When verified rows are added, the report separates them from the unverified ones and shows the
+false-rejection rate next to accuracy (see [docs/labeling.md](docs/labeling.md)). Until then the
+numbers in `docs/*_report.md` are labelled preliminary and should not be quoted.
+
 ## Limitations
 
 - **Accuracy is not verified.** The filter has been checked against two small hand-collected

@@ -13,9 +13,8 @@ CHANGELOG = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
 
 
 @pytest.mark.parametrize("name", ["README.md", "CHANGELOG.md"])
-def test_no_accuracy_number_and_no_release_tag_while_the_gate_is_open(name):
+def test_no_accuracy_number_while_labels_are_unverified(name):
     text = (ROOT / name).read_text(encoding="utf-8")
-    assert not re.search(r"v?0\.1\.0", text), "no version tag until the owner opens the gate"
     for line in text.splitlines():
         if re.search(r"accura|false[- ]reject|missed[- ]block", line, re.I):
             assert not re.search(r"\d+(?:\.\d+)?\s*%|\b\d+\s*/\s*\d+\b", line), line
@@ -50,3 +49,14 @@ def test_every_command_the_readme_shows_exists():
     help_text = CliRunner().invoke(cli.app, ["--help"], env={"COLUMNS": "200"}).output
     for command in commands:
         assert command in help_text, command
+
+
+def test_readme_evaluation_section_matches_the_label_files():
+    import csv
+
+    assert "## Evaluation" in README and "makes no accuracy claim" in README
+    for name in ("labeled_postings.csv", "heldout_postings.csv"):
+        with (ROOT / "tests" / "data" / name).open(newline="", encoding="utf-8") as handle:
+            rows = list(csv.DictReader(handle))
+        verified = sum(r["human_verified"].strip().lower() == "true" for r in rows)
+        assert f"{verified} / {len(rows)}" in README, name

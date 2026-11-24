@@ -2,16 +2,30 @@
 
 ## PENDING GATES (read before releasing or publishing anything)
 
-- [ ] **Label verification (owner).** Until the owner has set `human_verified=true` on the rows of
-  `tests/data/labeled_postings.csv` (and on the held-out batch `tests/data/heldout_postings.csv`) and
-  re-run `python -m jobgate.evaluation`, **no accuracy number may be written in the README, in any
-  X post, in release notes, or anywhere else public.** The same gate blocks the `v0.1.0` tag.
-  Numbers that already exist in `docs/filter_report.md` and in this log are labelled preliminary:
-  they use AI-suggested labels and the filter was tuned on those rows.
-- [ ] Target to clear the gate: at least 90% accuracy on human-verified rows, with the false
+Changed 2026-11-24 (owner decision): **`v0.1.0` may be released without label verification**, but
+the tag is still only created when the owner says so explicitly.
+
+- [ ] **No accuracy claim (still forbidden).** Until the owner has set `human_verified=true` on
+  rows of `tests/data/labeled_postings.csv` and `tests/data/heldout_postings.csv` and re-run
+  `python -m jobgate.evaluation`, **no accuracy number (percentage or ratio) may appear in the
+  README, CHANGELOG, any X post, release notes or anywhere else public.** `tests/test_docs.py`
+  enforces it for README and CHANGELOG. The README has an "Evaluation" section that says the
+  labels are AI-suggested and gives the verified/total row count (currently 0 of 68); the
+  evaluation report starts with the same count. Numbers inside `docs/*_report.md` and this log
+  are labelled preliminary (AI-suggested labels).
+- [ ] Target to lift the ban: at least 90% accuracy on human-verified rows, with the false
   rejection rate reported next to it.
 
 Newest entry first.
+
+## 2026-11-24 - Gate change, held-out label fixes, evaluation section
+
+**Done**
+- Gate changed by the owner: `v0.1.0` can ship unverified; accuracy claims stay forbidden. Updated here and in `CLAUDE.md`; `test_docs` no longer bans the version string but still bans accuracy numbers and now checks that the README's verified/total counts match the CSV files.
+- README: new "Evaluation" section (labels AI-suggested, 0 / 40 and 0 / 28 verified, no independent verification, no accuracy claim, how to run `jobgate.evaluation`).
+- Evaluation report now opens with "Human-verified rows: X of Y".
+- Held-out labels: H006 and H009 -> `uncertain`; H022 `suggested_reason` -> `LOCATION_OUTSIDE_PROFILE`. `human_verified` stays false. Reports regenerated: the held-out set now shows two more preliminary mismatches (H006, H009: the filter passes them), because the labels moved, not the filter.
+- Issue draft for a student / graduation-year rule: `docs/issue_drafts/graduation-year-rule.md` (not implemented).
 
 ## 2026-11-24 - Phase 4: optional LLM rationale, README, CHANGELOG
 
