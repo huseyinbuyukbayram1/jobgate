@@ -21,7 +21,18 @@ def test_no_accuracy_number_while_labels_are_unverified(name):
 
 
 def test_readme_discloses_ai_assisted_development():
-    assert "Claude Code" in README and "AI assistance" in README
+    section = README.split("## How this project is built", 1)[1].split("\n## ", 1)[0]
+    assert "Claude Code" in section and "AI coding" in section
+    assert "suggested by the AI assistant" in section and "not yet" in section
+    assert "labelling are done by the repository owner" not in README
+
+
+def test_readme_limitations_and_roadmap_cover_graduation_year_and_wording():
+    assert "hand-collected" not in README and "collected by the tooling" in README
+    assert README.count("docs/issue_drafts/graduation-year-rule.md") >= 2
+    assert (ROOT / "docs" / "issue_drafts" / "graduation-year-rule.md").exists()
+    assert "Windows" in README and "Activate.ps1" in README
+    assert README.index("Who it's for") < README.index("jobgate is an open-source")
 
 
 def test_readme_lists_the_documented_links_and_the_customer_terms_note():

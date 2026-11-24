@@ -1,5 +1,7 @@
 # jobgate
 
+**Who it's for:** new graduates who run into sponsorship, work-permit and location blockers and want to skip those postings quickly.
+
 jobgate is an open-source job search helper for new graduates. It reads **public** job
 postings from ATS job boards (Greenhouse, Lever, Ashby), drops the ones with application
 blockers up front (visa, citizenship or clearance, video or take-home requirements, years of
@@ -28,7 +30,7 @@ You need Python 3.12 or newer and git. Nothing else, and no account or API key.
 ```bash
 git clone https://github.com/huseyinbuyukbayram1/jobgate.git
 cd jobgate
-python3 -m venv .venv && source .venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate    # macOS / Linux
 pip install -e .                             # about 10 seconds
 
 cp profile.example.yaml profile.yaml         # then edit it: see "Your profile" below
@@ -37,6 +39,11 @@ jobgate companies validate                   # OK: 10 companies, 10 active (...)
 
 jobgate run                                  # fetch -> filter -> score -> report
 ```
+
+**Windows:** the steps are the same, but create and activate the environment with
+`py -m venv .venv` and then `.venv\Scripts\Activate.ps1` (PowerShell) or
+`.venv\Scripts\activate.bat` (cmd); use `copy` instead of `cp`. I have only run this on macOS, so
+the Windows route is untested.
 
 `jobgate run` takes about a minute for the 10 example companies (it waits between requests on
 purpose). Then open `reports/report.md`, or `reports/report.csv` in a spreadsheet.
@@ -193,11 +200,15 @@ numbers in `docs/*_report.md` are labelled preliminary and should not be quoted.
 
 ## Limitations
 
-- **Accuracy is not verified.** The filter has been checked against two small hand-collected
-  sets of postings whose labels are *suggested* by the tooling and have not yet been confirmed by
-  a human. Until they are, no accuracy figure is published. Treat the output as a time-saver
+- **Accuracy is not verified.** The filter has been checked against two small sets of postings
+  collected by the tooling. Their labels were suggested by the AI assistant and have not yet
+  been confirmed by a human. Until they are, no accuracy figure is published. Treat the output as a time-saver
   for reading, not as a guarantee: a posting the filter rejects may have been fine, and one it
   passes may still hide a blocker. The `check` list exists because of that.
+- **Student status and graduation year are not checked.** Many internship and new-grad postings
+  require being currently enrolled or graduating in a given year; the filter does not look for
+  that, so such postings can pass. See the
+  [draft issue](docs/issue_drafts/graduation-year-rule.md).
 - English-language postings only; rules are sentence-level regular expressions.
 - Scoring is keyword-based. A title like "Technical Support Engineer" earns partial role points
   because it contains "engineer". It is a ranking aid, not a judgement of fit.
@@ -210,6 +221,8 @@ numbers in `docs/*_report.md` are labelled preliminary and should not be quoted.
 
 - Confirm the evaluation labels by hand and publish the measured accuracy with the
   false-rejection rate next to it.
+- A student / graduation-year rule (draft:
+  [docs/issue_drafts/graduation-year-rule.md](docs/issue_drafts/graduation-year-rule.md)).
 - Better role matching in the score (titles, not just keywords).
 - Recognise more video-requirement wordings and use city names found in the text when the
   location field is vague.
@@ -218,9 +231,12 @@ numbers in `docs/*_report.md` are labelled preliminary and should not be quoted.
 
 ## How this project is built
 
-This project is developed with AI assistance: the code is written with
-[Claude Code](https://claude.com/claude-code). The design decisions, the rules and the
-test labelling are done by the repository owner, who reviews and approves each phase.
+This project was developed with [Claude Code](https://claude.com/claude-code), an AI coding
+assistant. The repository owner directed the work, reviewed each phase and approved it before the
+next one started.
+
+The labels in the evaluation sets were **suggested by the AI assistant** and have **not yet been
+verified by the owner**. See [Evaluation](#evaluation): no accuracy claim is made.
 
 ## Data sources and terms
 
