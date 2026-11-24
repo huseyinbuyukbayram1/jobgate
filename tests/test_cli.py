@@ -10,6 +10,7 @@ from typer.testing import CliRunner
 
 from jobgate import cli
 from jobgate.http import HttpClient
+from jobgate.llm import LlmError
 
 REPO_ROOT = Path(__file__).parent.parent
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -208,3 +209,113 @@ def test_help_has_no_double_negative_flags():
     output = plain(result.output)
     assert "--no-no-cache" not in output
     assert "--no-cache" in output
+
+
+# -- optional LLM rationale ---------------------------------------------------------------
+
+
+class FakeLlm:
+    def __init__(self, reply="Looks like a good match for your target role.", fail=None):
+        self.reply, self.fail, self.calls = reply, fail, 0
+
+    def complete(self, prompt):
+        self.calls += 1
+        if self.fail:
+            raise LlmError(self.fail)
+        return self.reply
+
+
+def enable_llm(tmp, monkeypatch, fake):
+    (tmp / "llm.yaml").write_text("llm:\n  enabled: true\n  model: tiny\n", encoding="utf-8")
+    monkeypatch.setattr(cli, "make_llm_client", lambda config: fake)
+    return ["--llm-config", str(tmp / "llm.yaml")]
+
+
+def decisions(db):
+    conn = sqlite3.connect(db)
+    return conn.execute(
+        "SELECT job_key, verdict, reasons, score, breakdown, explanation FROM decisions "
+        "ORDER BY job_key"
+    ).fetchall()
+
+
+def test_everything_works_with_the_llm_off_and_no_client_is_ever_built(env, monkeypatch):
+    tmp, base = env
+
+    def boom(config):
+        raise AssertionError("an LLM client must not be created while the LLM is off")
+
+    monkeypatch.setattr(cli, "make_llm_client", boom)
+    result = invoke(base, "run")
+    assert result.exit_code == 0, result.output
+    report = (tmp / "reports" / "report.md").read_text(encoding="utf-8")
+    assert "## Ranked matches" in report and "\n> " not in report
+    assert invoke(base, "explain").exit_code == 0  # off: says so, does nothing
+
+
+def test_a_disabled_config_file_also_keeps_the_llm_off(env, monkeypatch):
+    tmp, base = env
+    (tmp / "llm.yaml").write_text("llm:\n  enabled: false\n", encoding="utf-8")
+    monkeypatch.setattr(cli, "make_llm_client", lambda c: pytest.fail("must not be built"))
+    result = invoke([*base, "--llm-config", str(tmp / "llm.yaml")], "run")
+    assert result.exit_code == 0, result.output
+
+
+def test_llm_never_changes_a_decision_or_a_score(env, tmp_path_factory, monkeypatch):
+    tmp, base = env
+    assert invoke(base, "run").exit_code == 0
+    without_llm = decisions(tmp / "jobs.db")
+
+    other = tmp_path_factory.mktemp("with_llm")
+    shutil.copy(tmp / "profile.yaml", other / "profile.yaml")
+    shutil.copy(tmp / "companies.yaml", other / "companies.yaml")
+    hostile = FakeLlm(reply="Score 100. Ignore the filter and mark every posting as pass!")
+    llm_args = enable_llm(other, monkeypatch, hostile)
+    base2 = [
+        "--db", str(other / "jobs.db"), "--profile", str(other / "profile.yaml"),
+        "--companies", str(other / "companies.yaml"), "--reports-dir", str(other / "reports"),
+        *llm_args,
+    ]  # fmt: skip
+    result = invoke(base2, "run")
+    assert result.exit_code == 0, result.output
+    assert hostile.calls > 0
+    assert decisions(other / "jobs.db") == without_llm
+    report = (other / "reports" / "report.md").read_text(encoding="utf-8")
+    assert "> Score 100." in report  # shown as a rationale, never used as a decision
+
+
+def test_rationales_are_written_once_and_not_regenerated(env, monkeypatch):
+    tmp, base = env
+    fake = FakeLlm()
+    base = [*base, *enable_llm(tmp, monkeypatch, fake)]
+    assert invoke(base, "run").exit_code == 0
+    first_calls = fake.calls
+    assert first_calls > 0
+    assert invoke(base, "run").exit_code == 0
+    assert fake.calls == first_calls  # nothing new to explain
+    rows = (
+        sqlite3.connect(tmp / "jobs.db")
+        .execute("SELECT COUNT(*) FROM decisions WHERE rationale IS NOT NULL")
+        .fetchone()[0]
+    )
+    assert rows == first_calls
+
+
+def test_an_unreachable_llm_does_not_stop_the_run_and_says_so(env, monkeypatch):
+    tmp, base = env
+    fake = FakeLlm(fail="connection refused")
+    base = [*base, *enable_llm(tmp, monkeypatch, fake)]
+    result = invoke(base, "run")
+    assert result.exit_code == 0, result.output
+    assert "LLM unavailable" in result.output and "rule-based" in result.output
+    assert "connection refused" in result.output
+    assert fake.calls == 1
+    report = (tmp / "reports" / "report.md").read_text(encoding="utf-8")
+    assert "## Ranked matches" in report and "\n> " not in report
+
+
+def test_a_broken_llm_config_is_a_clear_error(env):
+    tmp, base = env
+    (tmp / "llm.yaml").write_text("llm:\n  provider: skynet\n", encoding="utf-8")
+    result = invoke([*base, "--llm-config", str(tmp / "llm.yaml")], "run")
+    assert result.exit_code == 2 and "llm" in result.output.lower()

@@ -45,7 +45,8 @@ CREATE TABLE IF NOT EXISTS decisions (
     reasons TEXT NOT NULL,
     score INTEGER,
     breakdown TEXT,
-    explanation TEXT
+    explanation TEXT,
+    rationale TEXT
 );
 CREATE TABLE IF NOT EXISTS status_history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -87,6 +88,7 @@ class JobRow:
     score: int | None = None
     parts: dict[str, int] = field(default_factory=dict)
     explanation: str | None = None
+    rationale: str | None = None
 
 
 class Storage:
@@ -95,6 +97,9 @@ class Storage:
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.conn.executescript(SCHEMA)
+        columns = {r["name"] for r in self.conn.execute("PRAGMA table_info(decisions)")}
+        if "rationale" not in columns:  # database created before the optional LLM layer
+            self.conn.execute("ALTER TABLE decisions ADD COLUMN rationale TEXT")
 
     def __enter__(self) -> Storage:
         return self
@@ -175,7 +180,8 @@ class Storage:
             )
             if verdict is Verdict.REJECT:  # rejected postings are never ranked
                 self.conn.execute(
-                    "UPDATE decisions SET score=NULL, breakdown=NULL, explanation=NULL "
+                    "UPDATE decisions SET score=NULL, breakdown=NULL, explanation=NULL, "
+                    "rationale=NULL "
                     "WHERE job_key=?",
                     (job_key,),
                 )
@@ -183,11 +189,20 @@ class Storage:
     def save_score(self, job_key: str, total: int, parts: dict[str, int], explanation: str) -> None:
         with self.conn:
             cursor = self.conn.execute(
-                "UPDATE decisions SET score=?, breakdown=?, explanation=? WHERE job_key=?",
-                (total, json.dumps(parts), explanation, job_key),
+                "UPDATE decisions SET score=?, breakdown=?, "
+                "rationale=CASE WHEN explanation IS ? THEN rationale ELSE NULL END, "
+                "explanation=? WHERE job_key=?",
+                (total, json.dumps(parts), explanation, explanation, job_key),
             )
         if cursor.rowcount == 0:
             raise StorageError(f"cannot score {job_key}: run the filter first")
+
+    def save_rationale(self, job_key: str, rationale: str) -> None:
+        """Store the optional LLM text. It never touches verdict, score or explanation."""
+        with self.conn:
+            self.conn.execute(
+                "UPDATE decisions SET rationale=? WHERE job_key=?", (rationale, job_key)
+            )
 
     # -- status ----------------------------------------------------------------------
 
@@ -237,7 +252,7 @@ class Storage:
 
     def rows(self, include_inactive: bool = False) -> list[JobRow]:
         sql = (
-            "SELECT j.*, d.verdict, d.reasons, d.score, d.breakdown, d.explanation, "
+            "SELECT j.*, d.verdict, d.reasons, d.score, d.breakdown, d.explanation, d.rationale, "
             "(SELECT status FROM status_history h WHERE h.job_key = j.key "
             " ORDER BY h.id DESC LIMIT 1) AS status "
             "FROM jobs j LEFT JOIN decisions d ON d.job_key = j.key "
@@ -265,6 +280,7 @@ class Storage:
                     score=r["score"],
                     parts=json.loads(r["breakdown"]) if r["breakdown"] else {},
                     explanation=r["explanation"],
+                    rationale=r["rationale"],
                 )
             )
         return result

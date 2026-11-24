@@ -120,3 +120,18 @@ def test_csv_can_include_rejected_postings_with_reason_codes():
     parsed = list(csv.DictReader(io.StringIO(build_csv(rows, include_rejected=True))))
     assert len(parsed) == 2
     assert parsed[1]["verdict"] == "reject" and parsed[1]["reasons"] == "EXPERIENCE_TOO_HIGH"
+
+
+def test_rationale_is_shown_under_the_entry_and_in_the_csv_when_present():
+    row = make_row(1, score=72)
+    row.rationale = "Title matches your target role."
+    text = build_markdown([row], DAY)
+    assert "> Title matches your target role." in text
+    records = list(csv.DictReader(io.StringIO(build_csv([row]))))
+    assert records[0]["rationale"] == "Title matches your target role."
+
+
+def test_reports_without_rationale_have_no_quote_lines_and_an_empty_csv_cell():
+    row = make_row(1, score=72)
+    assert "\n> " not in build_markdown([row], DAY)
+    assert list(csv.DictReader(io.StringIO(build_csv([row]))))[0]["rationale"] == ""

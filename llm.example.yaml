@@ -1,0 +1,19 @@
+# Optional: a short plain-English rationale next to each score. OFF by default.
+# Copy to llm.yaml (git-ignored) and set enabled: true to use it.
+#
+# The LLM only rewords the rule-based explanation. It never changes a filter decision or a
+# score, and it is sent only the job title, company, location and the score breakdown
+# (no posting text, no profile, no CV). If it is unreachable, jobgate says so and carries on.
+llm:
+  enabled: false
+  provider: ollama            # ollama | openai_compatible
+  model: llama3.2             # any model you have pulled: `ollama pull llama3.2`
+  base_url: http://localhost:11434
+  timeout_seconds: 30
+
+  # Cloud option (an API that speaks the common /chat/completions shape):
+  # provider: openai_compatible
+  # base_url: https://your-provider.example/v1
+  # model: your-model-name
+  # api_key_env: MY_LLM_KEY   # NAME of an environment variable; the key never goes in this file
+  #                           # (optional: leave it out for a server that needs no key)

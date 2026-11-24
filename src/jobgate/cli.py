@@ -15,6 +15,8 @@ from jobgate.companies import ConfigError, load_companies
 from jobgate.fetch import fetch_all
 from jobgate.filters import evaluate
 from jobgate.http import HttpClient
+from jobgate.llm import LlmConfigError, load_llm_config, write_rationales
+from jobgate.llm import make_client as build_llm_client
 from jobgate.profile import ProfileError, load_profile
 from jobgate.report import build_csv, build_markdown
 from jobgate.scoring import ScoringError, load_weights, score_job
@@ -32,6 +34,7 @@ companies_app = typer.Typer(help="Work with the companies file.", no_args_is_hel
 app.add_typer(companies_app, name="companies")
 
 DEFAULT_WEIGHTS_FILE = Path("scoring.yaml")
+DEFAULT_LLM_FILE = Path("llm.yaml")
 
 
 @dataclass
@@ -43,10 +46,16 @@ class Options:
     cache_dir: Path
     use_cache: bool
     reports_dir: Path
+    llm_config: Path | None = None
 
 
 def make_client(opts: Options) -> HttpClient:
     return HttpClient(cache_dir=opts.cache_dir, use_cache=opts.use_cache)
+
+
+make_llm_client = (
+    build_llm_client  # replaced by a fake in tests; the real one is never built when off
+)
 
 
 def fail(message: str, code: int = 2) -> NoReturn:
@@ -77,13 +86,19 @@ def main(
         bool, typer.Option("--cache/--no-cache", help="Use the daily fetch cache.")
     ] = True,
     reports_dir: Annotated[Path, typer.Option(help="Where reports are written.")] = Path("reports"),
+    llm_config: Annotated[
+        Path | None,
+        typer.Option(help="Optional LLM rationale settings. Default: llm.yaml if it exists."),
+    ] = None,
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Show debug logging.")] = False,
 ) -> None:
     """Global options go before the command, e.g. `jobgate --db my.db run`."""
     logging.basicConfig(level=logging.DEBUG if verbose else logging.ERROR)
     if weights is None and DEFAULT_WEIGHTS_FILE.exists():
         weights = DEFAULT_WEIGHTS_FILE
-    ctx.obj = Options(db, profile, companies, weights, cache_dir, cache, reports_dir)
+    if llm_config is None and DEFAULT_LLM_FILE.exists():
+        llm_config = DEFAULT_LLM_FILE
+    ctx.obj = Options(db, profile, companies, weights, cache_dir, cache, reports_dir, llm_config)
 
 
 def _opts(ctx: typer.Context) -> Options:
@@ -168,6 +183,38 @@ def step_score(opts: Options) -> bool:
     return True
 
 
+def step_explain(opts: Options, announce_off: bool = False) -> None:
+    """Add optional LLM rationales. Verdicts and scores are never touched or re-read from it."""
+    try:
+        config = load_llm_config(opts.llm_config)
+    except LlmConfigError as exc:
+        fail(str(exc))
+    if not config.enabled:
+        if announce_off:
+            typer.echo(
+                "LLM rationale is off. To turn it on, copy llm.example.yaml to llm.yaml "
+                "and set enabled: true."
+            )
+        return
+    try:
+        client = make_llm_client(config)
+    except LlmConfigError as exc:
+        fail(str(exc))
+    with Storage(opts.db) as store:
+        todo = [
+            (row.job.key, row.job, row.explanation)
+            for row in store.rows()
+            if row.verdict in ("pass", "check") and row.explanation and not row.rationale
+        ]
+        result = write_rationales(todo, client, store.save_rationale)
+    if result.unavailable:
+        typer.echo(
+            f"LLM unavailable ({result.error}); continuing with rule-based explanations only.",
+            err=True,
+        )
+    typer.echo(f"Wrote {result.written} LLM rationales ({result.skipped} skipped).")
+
+
 def step_report(opts: Options, min_score: int, limit: int | None, include_rejected: bool) -> None:
     with Storage(opts.db) as store:
         rows = store.rows()
@@ -210,6 +257,12 @@ def score(ctx: typer.Context) -> None:
 
 
 @app.command()
+def explain(ctx: typer.Context) -> None:
+    """Add a short LLM rationale to scored postings (optional; off unless llm.yaml enables it)."""
+    step_explain(_opts(ctx), announce_off=True)
+
+
+@app.command()
 def report(
     ctx: typer.Context,
     min_score: Annotated[int, typer.Option(help="Hide matches below this score.")] = 0,
@@ -247,13 +300,14 @@ def run(
     min_score: Annotated[int, typer.Option(help="Hide matches below this score.")] = 0,
     limit: Annotated[int | None, typer.Option(help="Show at most this many per section.")] = None,
 ) -> None:
-    """Run fetch, filter, score and report in order."""
+    """Run fetch, filter, score, (optional LLM rationale) and report in order."""
     opts = _opts(ctx)
     if not step_fetch(opts):
         raise typer.Exit(1)
     step_filter(opts)
     if not step_score(opts):
         raise typer.Exit(1)
+    step_explain(opts)
     step_report(opts, min_score, limit, include_rejected=False)
 
 

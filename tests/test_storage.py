@@ -150,3 +150,40 @@ def test_database_file_persists_between_connections(tmp_path):
         s.upsert_jobs([make_job(1)], date(2026, 1, 1))
     with Storage(path) as s:
         assert len(s.rows()) == 1
+
+
+def test_rationale_is_stored_separately_from_the_score_and_survives_an_identical_rescore(tmp_path):
+    from datetime import date
+
+    from jobgate.filters import Verdict
+
+    job = Job(
+        company="Acme", title="Engineer", location="Berlin", description="d",
+        url="https://example.com/1", ats="greenhouse", ats_job_id="1",
+    )  # fmt: skip
+    with Storage(tmp_path / "s.db") as store:
+        store.upsert_jobs([job], date(2026, 1, 1))
+        store.save_decision(job.key, Verdict.PASS, [])
+        store.save_score(job.key, 70, {"role": 30}, "70: role 30")
+        store.save_rationale(job.key, "Good fit.")
+        assert store.rows()[0].rationale == "Good fit."
+        store.save_score(job.key, 70, {"role": 30}, "70: role 30")  # same score again
+        assert store.rows()[0].rationale == "Good fit."
+        store.save_score(job.key, 55, {"role": 25}, "55: role 25")  # score changed
+        row = store.rows()[0]
+        assert row.rationale is None and row.score == 55
+
+
+def test_old_databases_get_the_rationale_column(tmp_path):
+    import sqlite3
+
+    path = tmp_path / "old.db"
+    conn = sqlite3.connect(path)
+    conn.executescript(
+        "CREATE TABLE decisions (job_key TEXT PRIMARY KEY, verdict TEXT NOT NULL, "
+        "reasons TEXT NOT NULL, score INTEGER, breakdown TEXT, explanation TEXT);"
+    )
+    conn.close()
+    Storage(path).close()
+    cols = [r[1] for r in sqlite3.connect(path).execute("PRAGMA table_info(decisions)")]
+    assert "rationale" in cols
