@@ -1,0 +1,16 @@
+# Kişisel veri (asla repoya girmez)
+profile.yaml
+*.db
+.env
+cv/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+dist/
+
+# macOS
+.DS_Store
