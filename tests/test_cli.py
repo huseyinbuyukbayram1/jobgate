@@ -1,4 +1,5 @@
 import json
+import re
 import shutil
 import sqlite3
 from pathlib import Path
@@ -12,7 +13,15 @@ from jobgate.http import HttpClient
 
 REPO_ROOT = Path(__file__).parent.parent
 FIXTURES = Path(__file__).parent / "fixtures"
-runner = CliRunner()
+# Same output on a laptop and in CI: no colour and no wrapping, whatever the environment says.
+runner = CliRunner(env={"NO_COLOR": "1", "TERM": "dumb", "COLUMNS": "200", "FORCE_COLOR": None})
+ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
+
+
+def plain(text):
+    """Strip ANSI escape codes so assertions never depend on terminal styling."""
+    return ANSI.sub("", text)
+
 
 COMPANIES = """
 companies:
@@ -187,13 +196,15 @@ def test_companies_validate_reports_counts_and_errors(env):
 
 def test_help_texts_are_in_english_and_list_every_command():
     result = runner.invoke(cli.app, ["--help"])
+    output = plain(result.output)
     assert result.exit_code == 0
     for word in ("fetch", "filter", "score", "report", "mark", "run", "companies"):
-        assert word in result.output
-    assert "never applies" in result.output.lower()
+        assert word in output
+    assert "never applies" in output.lower()
 
 
 def test_help_has_no_double_negative_flags():
     result = runner.invoke(cli.app, ["--help"])
-    assert "--no-no-cache" not in result.output
-    assert "--no-cache" in result.output
+    output = plain(result.output)
+    assert "--no-no-cache" not in output
+    assert "--no-cache" in output
