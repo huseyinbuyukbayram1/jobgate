@@ -53,3 +53,17 @@ Known limits of this batch:
   other rules.
 - Two rows (Cloudflare, location field `In-Office`) put the real city only in the text, which
   the filter does not read for location. Their labels follow what a human would conclude.
+
+### What the first run on the held-out batch showed (recorded, not fixed)
+
+The filter was run on this batch once, after the labels were committed, and then left alone.
+Result in `docs/heldout_report.md` (preliminary, unverified labels). Findings:
+
+1. Both mismatches are the Cloudflare `In-Office` rows: the filter says "check" because the
+   location field is unclear, while the real city is only in the text. Safe direction.
+2. One row was rejected for the wrong reason: Palantir's "A 3-minute response to our
+   application video prompt." is a video requirement the video rule does not recognise; the
+   row was rejected only because of its location (Seoul). A video-only posting in an allowed
+   location would slip through.
+
+These are candidates for a later fix, to be checked on a *new* unseen batch.

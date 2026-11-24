@@ -165,7 +165,7 @@ def _metrics(result: EvalResult) -> list[str]:
     ]
 
 
-def build_report(rows: list[LabeledPosting], profile: Profile) -> str:
+def build_report(rows: list[LabeledPosting], profile: Profile, heldout: bool = False) -> str:
     everything = evaluate_rows(rows, profile)
     verified = evaluate_rows([r for r in rows if r.human_verified], profile)
     lines = [
@@ -196,8 +196,13 @@ def build_report(rows: list[LabeledPosting], profile: Profile) -> str:
         "",
         "## Preliminary: all rows, using suggested (unverified) labels",
         "",
-        "These labels were proposed by the AI assistant and the filter was tuned while "
-        "looking at many of these rows, so treat the numbers as optimistic.",
+        (
+            "These labels were proposed by the AI assistant. The filter was not tuned on "
+            "these rows (held-out batch), but the labels are still unverified."
+            if heldout
+            else "These labels were proposed by the AI assistant and the filter was tuned while "
+            "looking at many of these rows, so treat the numbers as optimistic."
+        ),
         "",
         *_metrics(everything),
         "",
@@ -230,8 +235,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--set", default="tests/data/labeled_postings.csv", help="labelled CSV")
     parser.add_argument("--profile", default="profile.example.yaml", help="profile YAML")
     parser.add_argument("--out", help="write the Markdown report here instead of stdout")
+    parser.add_argument(
+        "--heldout", action="store_true", help="the set was never used to tune the filter"
+    )
     args = parser.parse_args(argv)
-    report = build_report(load_labeled(args.set), load_profile(args.profile))
+    report = build_report(load_labeled(args.set), load_profile(args.profile), args.heldout)
     if args.out:
         Path(args.out).write_text(report, encoding="utf-8")
     else:

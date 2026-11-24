@@ -161,3 +161,11 @@ def test_heldout_batch_has_at_least_25_unverified_real_postings():
 def test_heldout_batch_does_not_overlap_the_development_set():
     dev_urls = {r.source_url for r in load_labeled(DATA)}
     assert not dev_urls & {r.source_url for r in load_labeled(HELDOUT)}
+
+
+def test_heldout_report_does_not_claim_the_filter_was_tuned_on_it(profile):
+    rows = [row("clear", "Build APIs.")]
+    assert "was tuned" in build_report(rows, profile)
+    heldout = build_report(rows, profile, heldout=True)
+    assert "was tuned" not in heldout
+    assert "not tuned" in heldout.lower()
