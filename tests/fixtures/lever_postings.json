@@ -1,0 +1,33 @@
+[
+  {
+    "id": "aaaaaaaa-0000-0000-0000-000000000001",
+    "text": "Graduate Backend Engineer",
+    "categories": {
+      "location": "London, UK",
+      "commitment": "Full-time",
+      "team": "Platform",
+      "allLocations": ["London, UK", "Remote, UK"]
+    },
+    "country": "GB",
+    "workplaceType": "hybrid",
+    "createdAt": 1767225600000,
+    "descriptionPlain": "Join the platform team.",
+    "description": "<div>Join the platform team.</div>",
+    "lists": [
+      {"text": "What you'll do", "content": "<li>Write services</li><li>Review code</li>"},
+      {"text": "Requirements", "content": "<li>Python</li>"}
+    ],
+    "additionalPlain": "We value curiosity.",
+    "hostedUrl": "https://jobs.example.com/acme/aaaaaaaa-0000-0000-0000-000000000001",
+    "applyUrl": "https://jobs.example.com/acme/aaaaaaaa-0000-0000-0000-000000000001/apply"
+  },
+  {
+    "id": "aaaaaaaa-0000-0000-0000-000000000002",
+    "text": "Support Engineer",
+    "categories": {"allLocations": ["Dublin, Ireland"]},
+    "workplaceType": "on-site",
+    "descriptionPlain": "Help customers.",
+    "hostedUrl": "https://jobs.example.com/acme/aaaaaaaa-0000-0000-0000-000000000002"
+  },
+  {"id": "aaaaaaaa-0000-0000-0000-000000000003", "categories": {}}
+]

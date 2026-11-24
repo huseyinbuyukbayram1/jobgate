@@ -1,0 +1,40 @@
+{
+  "apiVersion": "1",
+  "jobs": [
+    {
+      "id": "bbbbbbbb-0000-0000-0000-000000000001",
+      "title": "Associate Software Engineer",
+      "department": "Product",
+      "team": "Engineering",
+      "employmentType": "FullTime",
+      "location": "Amsterdam, Netherlands",
+      "secondaryLocations": [],
+      "publishedAt": "2026-01-15T12:00:00.000+00:00",
+      "isListed": true,
+      "isRemote": false,
+      "workplaceType": "Hybrid",
+      "address": {"postalAddress": {"addressCountry": "Netherlands"}},
+      "jobUrl": "https://jobs.example.com/acme/bbbbbbbb-0000-0000-0000-000000000001",
+      "applyUrl": "https://jobs.example.com/acme/bbbbbbbb-0000-0000-0000-000000000001/application",
+      "descriptionHtml": "<p>Work on <b>core</b> product.</p>",
+      "descriptionPlain": "Work on core product."
+    },
+    {
+      "title": "Product Designer",
+      "location": "Remote",
+      "publishedAt": "2026-01-16T12:00:00.000+00:00",
+      "isListed": true,
+      "isRemote": true,
+      "workplaceType": "Remote",
+      "jobUrl": "https://jobs.example.com/acme/cccccccc-0000-0000-0000-000000000002",
+      "descriptionHtml": "<p>Design things.</p>"
+    },
+    {
+      "id": "bbbbbbbb-0000-0000-0000-000000000003",
+      "title": "Hidden Role",
+      "location": "Paris, France",
+      "isListed": false,
+      "jobUrl": "https://jobs.example.com/acme/bbbbbbbb-0000-0000-0000-000000000003"
+    }
+  ]
+}
