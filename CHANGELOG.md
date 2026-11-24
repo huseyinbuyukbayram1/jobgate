@@ -1,10 +1,14 @@
 # Changelog
 
 All notable changes are listed here. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Nothing has been released yet:
-everything below is under **Unreleased** until the project owner decides to cut a release.
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Release dates are the day the changelog entry was prepared.
 
-## Unreleased
+## [Unreleased]
+
+## [0.1.0] - 2026-11-25
+
+### Known limitations
+- The evaluation labels are AI-suggested and not human-verified, so no accuracy claim is made; there is no student / graduation-year rule; senior titles lose level points but get no penalty or check.
 
 ### Added
 - Fetch public postings from Greenhouse, Lever and Ashby with an explicit User-Agent, request
