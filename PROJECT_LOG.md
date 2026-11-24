@@ -89,7 +89,7 @@ Newest entry first.
 
 **Gate status: partially met, by design**
 - Human-verified rows: 0 of 40, so the real >= 90% target cannot be claimed yet. The report says so explicitly.
-- Preliminary (unverified labels): accuracy 97.5% (39/40), false rejection rate 0.0% (0/20), missed-block rate 0.0% (0/20). The one miss is a posting whose location field is only "Hybrid"; the filter says "check" instead of "reject" (the safe direction). These numbers are optimistic because I tuned the filter while looking at these rows.
+- Preliminary (unverified labels): 39 of 40 correct, 0 of 20 non-blocked rejected, 0 of 20 blocked passed unflagged. The one miss is a posting whose location field is only "Hybrid"; the filter says "check" instead of "reject" (the safe direction). These numbers are optimistic because I tuned the filter while looking at these rows.
 
 **Problems and fixes (found by running the filter on real postings)**
 - "without sponsorship for an export license" (Cloudflare boilerplate on hundreds of postings) was read as a visa blocker. Sentences about export control, employer-sponsored benefits and executive sponsors are now ignored.

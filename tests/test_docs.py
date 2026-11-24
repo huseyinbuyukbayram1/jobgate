@@ -60,3 +60,10 @@ def test_readme_evaluation_section_matches_the_label_files():
             rows = list(csv.DictReader(handle))
         verified = sum(r["human_verified"].strip().lower() == "true" for r in rows)
         assert f"{verified} / {len(rows)}" in README, name
+
+
+def test_docs_folder_has_no_accuracy_percentages():
+    for path in sorted((ROOT / "docs").rglob("*.md")):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if re.search(r"accura|false[- ]reject|missed[- ]block|wrongly rejected", line, re.I):
+                assert "%" not in line, f"{path.name}: {line}"

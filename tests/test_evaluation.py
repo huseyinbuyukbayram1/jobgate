@@ -5,6 +5,7 @@ import pytest
 
 from jobgate.evaluation import (
     FIELDS,
+    MIN_VERIFIED_ROWS,
     LabeledPosting,
     build_report,
     evaluate_rows,
@@ -72,20 +73,45 @@ def test_report_never_claims_the_target_without_verified_rows(profile):
     assert "target met" not in report.lower()
 
 
-def test_report_shows_both_numbers_for_verified_rows(profile):
-    rows = [row("clear", "Build APIs.", verified=True, n=i) for i in range(10)]
-    report = build_report(rows, profile)
+def enough(n_good, n_bad=0):
+    rows = [row("clear", "Build APIs.", verified=True, n=i) for i in range(n_good)]
+    rows += [
+        row("clear", "5+ years of experience.", verified=True, n=i + 500) for i in range(n_bad)
+    ]
+    assert len(rows) >= MIN_VERIFIED_ROWS
+    return rows
+
+
+def test_report_shows_rates_for_verified_rows_once_there_are_enough(profile):
+    report = build_report(enough(MIN_VERIFIED_ROWS), profile)
     assert "Accuracy: 100.0%" in report
     assert "False rejection rate: 0.0%" in report
     assert "target met" in report.lower()
 
 
 def test_report_fails_the_target_below_ninety_percent(profile):
-    rows = [row("clear", "Build APIs.", verified=True, n=i) for i in range(8)]
-    rows += [row("clear", "5+ years of experience.", verified=True, n=i + 20) for i in range(2)]
-    report = build_report(rows, profile)
+    report = build_report(enough(MIN_VERIFIED_ROWS - 4, 4), profile)
     assert "Accuracy: 80.0%" in report
     assert "target not met" in report.lower()
+
+
+def test_no_percentage_is_printed_for_unverified_labels_or_too_few_verified_rows(profile):
+    unverified = build_report([row("clear", "Build APIs.", n=i) for i in range(5)], profile)
+    few = build_report(
+        [row("clear", "Build APIs.", verified=True, n=i) for i in range(MIN_VERIFIED_ROWS - 1)],
+        profile,
+    )
+    for report in (unverified, few):
+        assert "%" not in report
+    assert "Correct: 5 of 5" in unverified
+    assert "Wrongly rejected" in unverified and "Blocked but passed" in unverified
+    assert f"at least {MIN_VERIFIED_ROWS}" in few and "target met" not in few.lower()
+
+
+def test_generated_reports_in_docs_contain_no_percentage():
+    for name in ("filter_report.md", "heldout_report.md"):
+        text = (REPO_ROOT / "docs" / name).read_text(encoding="utf-8")
+        assert "%" not in text, name
 
 
 def test_load_labeled_reads_booleans_and_rejects_bad_labels(tmp_path):

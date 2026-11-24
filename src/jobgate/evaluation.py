@@ -29,6 +29,8 @@ LABEL_TO_VERDICT = {
     "uncertain": Verdict.CHECK,
 }
 TARGET_ACCURACY = 0.90
+# Rates (percentages) are printed only for human-verified rows, and only from this many rows on.
+MIN_VERIFIED_ROWS = 20
 
 
 @dataclass(frozen=True)
@@ -155,7 +157,19 @@ def _pct(value: float | None) -> str:
     return "n/a" if value is None else f"{value * 100:.1f}%"
 
 
-def _metrics(result: EvalResult) -> list[str]:
+def _counts(result: EvalResult) -> list[str]:
+    """Plain counts, safe to publish for any labels."""
+    return [
+        f"- Rows: {result.total}",
+        f"- Correct: {result.correct} of {result.total}",
+        f"- Mismatches: {len(result.mismatches)}",
+        f"- Wrongly rejected (not blocked, but rejected): "
+        f"{result.false_rejections} of {result.non_blocked}",
+        f"- Blocked but passed unflagged: {result.missed_blocks} of {result.blocked}",
+    ]
+
+
+def _rates(result: EvalResult) -> list[str]:
     return [
         f"- Accuracy: {_pct(result.accuracy)} ({result.correct}/{result.total})",
         f"- False rejection rate: {_pct(result.false_rejection_rate)} "
@@ -192,8 +206,15 @@ def build_report(rows: list[LabeledPosting], profile: Profile, heldout: bool = F
             "Accuracy and false rejection rate are not measurable yet: no row has been "
             "verified by the owner. See `docs/labeling.md`.",
         ]
+    elif verified.total < MIN_VERIFIED_ROWS:
+        lines += [
+            f"Rates are not reported yet: at least {MIN_VERIFIED_ROWS} verified rows are needed "
+            f"and there are {verified.total}. Counts for the verified rows:",
+            "",
+            *_counts(verified),
+        ]
     else:
-        lines += _metrics(verified)
+        lines += _rates(verified)
         met = (verified.accuracy or 0) >= TARGET_ACCURACY
         lines += [
             f"- Target (accuracy >= {TARGET_ACCURACY:.0%}): "
@@ -208,10 +229,12 @@ def build_report(rows: list[LabeledPosting], profile: Profile, heldout: bool = F
             "these rows (held-out batch), but the labels are still unverified."
             if heldout
             else "These labels were proposed by the AI assistant and the filter was tuned while "
-            "looking at many of these rows, so treat the numbers as optimistic."
+            "looking at many of these rows, so treat the counts as optimistic."
         ),
         "",
-        *_metrics(everything),
+        "No percentages are printed for unverified labels.",
+        "",
+        *_counts(everything),
         "",
         "## Confusion matrix (preliminary)",
         "",

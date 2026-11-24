@@ -24,7 +24,7 @@ toward the accuracy target until a human confirms them:
 3. Set `human_verified` to `true` for every row you checked.
 4. Run `python -m jobgate.evaluation --out docs/filter_report.md` and commit the report.
 
-The target is at least 90% accuracy on verified rows. The false rejection rate (postings
+The report prints rates only for verified rows, and only once at least 20 rows are verified; until then it prints counts. The accuracy target is in `PROJECT_LOG.md`. The false rejection rate (postings
 that are not blocked but were rejected) is reported separately because wrongly dropping a
 good posting is the costly mistake.
 

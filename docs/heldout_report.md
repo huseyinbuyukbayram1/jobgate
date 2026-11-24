@@ -14,9 +14,13 @@ Accuracy and false rejection rate are not measurable yet: no row has been verifi
 
 These labels were proposed by the AI assistant. The filter was not tuned on these rows (held-out batch), but the labels are still unverified.
 
-- Accuracy: 85.7% (24/28)
-- False rejection rate: 0.0% (0 of 12 non-blocked postings were rejected)
-- Missed-block rate: 0.0% (0 of 16 blocked postings passed unflagged)
+No percentages are printed for unverified labels.
+
+- Rows: 28
+- Correct: 24 of 28
+- Mismatches: 4
+- Wrongly rejected (not blocked, but rejected): 0 of 12
+- Blocked but passed unflagged: 0 of 16
 
 ## Confusion matrix (preliminary)
 
