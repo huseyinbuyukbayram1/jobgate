@@ -169,3 +169,11 @@ def test_heldout_report_does_not_claim_the_filter_was_tuned_on_it(profile):
     heldout = build_report(rows, profile, heldout=True)
     assert "was tuned" not in heldout
     assert "not tuned" in heldout.lower()
+
+
+def test_report_states_verified_over_total_right_after_the_title(profile):
+    rows = [row("clear", "Build APIs.", verified=(i < 2), n=i) for i in range(5)]
+    report = build_report(rows, profile)
+    head = report.splitlines()[:4]
+    assert head[0] == "# Filter accuracy report"
+    assert any("Human-verified rows: 2 of 5" in line for line in head)
