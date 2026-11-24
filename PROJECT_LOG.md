@@ -13,6 +13,33 @@
 
 Newest entry first.
 
+## 2026-11-24 - Phase 3: scoring, SQLite, CLI, reports (+ held-out batch)
+
+**Done**
+- Pending label-verification gate written at the top of this file and in `CLAUDE.md`.
+- Held-out batch `tests/data/heldout_postings.csv`: 28 real junior/new-grad software, AI and data engineering postings from 23 companies the first set never used (short quotes + source links, suggested labels, `human_verified=false`). Labels were committed *before* the filter was run on it; the filter was not changed afterwards. First-run result (preliminary, unverified labels) is in `docs/heldout_report.md`. Findings: 2 safe-direction misses (Cloudflare `In-Office` rows, city only in the text) and 1 row rejected for the wrong reason (video-prompt wording not recognised). Not fixed on purpose. The batch has no `uncertain` rows.
+- `scoring.py` + `scoring.example.yaml`: five integer parts that add up to the total; weights in YAML, must sum to 100; profile gained a `preferences` section (target/avoid roles, technologies, work modes).
+- `storage.py`: SQLite (`jobs`, `decisions`, `status_history`, `runs`), upserts keyed by `Job.key`, closed postings marked inactive only for companies fetched successfully.
+- `report.py`: ranked Markdown + CSV, deterministic output.
+- `cli.py` (typer): `fetch | filter | score | report | mark | run | companies validate`, English help and errors, exit codes 0/1/2. Console script `jobgate`.
+- `experience_mentions()` extracted from the experience rule so the scorer reads the same numbers (behaviour unchanged: both labelled-set results identical before and after).
+- 222 tests, ruff clean.
+
+**Gate: met.** One command (`jobgate run`) on the 10 example companies, live network, ~27 s: 2,645 postings, 52 pass, 235 check, 2,358 reject, 287 scored, ranked `report.md` + `report.csv`. Second run: 0 new rows, `jobs`/`decisions`/`status_history` row counts unchanged, both report files byte-identical (only the `runs` log grows, by design).
+
+**Problems and fixes**
+- Typer printed `--no-no-cache` for a boolean named `no_cache`; fixed with `--cache/--no-cache` and a test.
+- A `sed` command failed on macOS and silently skipped the rest of a `&&` chain; caught because the next test run did not show the expected change.
+
+**Assumptions / limits**
+- Scoring is keyword based: "Technical Support Engineer" earns half the role points for the target "software engineer" because "engineer" matches. Reasonable to tighten in a later phase.
+- Many Cloudflare postings only say `Hybrid` or `In-Office` as location, so they land in "check".
+- Python 3.12/3.13 (the CI versions) are not installed on this machine; only 3.14 was run locally. CI is the first real check for 3.12/3.13.
+- `mark` statuses: `found` (automatic), `applied`, `dropped`.
+
+**Next (Phase 4)**
+- Ollama rationale text (LLM only rewords, off by default, a test proves everything works with it off), README (problem, 10-minute setup, example output, mermaid diagram, limitations, what it does not do, roadmap), CHANGELOG. The accuracy gate above still blocks `v0.1.0` and any public accuracy number.
+
 ## 2026-11-24 - Phase 2: profile, blocker filter, labelled set, accuracy report
 
 **Done**

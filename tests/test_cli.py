@@ -191,3 +191,9 @@ def test_help_texts_are_in_english_and_list_every_command():
     for word in ("fetch", "filter", "score", "report", "mark", "run", "companies"):
         assert word in result.output
     assert "never applies" in result.output.lower()
+
+
+def test_help_has_no_double_negative_flags():
+    result = runner.invoke(cli.app, ["--help"])
+    assert "--no-no-cache" not in result.output
+    assert "--no-cache" in result.output

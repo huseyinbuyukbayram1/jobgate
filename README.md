@@ -1,6 +1,7 @@
 # jobgate
 
-> **Status: early development (Phase 2 - filtering).** Fetching and the blocker filter work as a library; there is no CLI yet.
+> **Status: early development (Phase 3 - CLI and reports).** The full pipeline runs from the
+> command line. Install notes, example output and limitations are still to come.
 
 jobgate is an open-source job search helper for new graduates. It pulls publicly
 available postings from ATS job boards, screens out application blockers up front
@@ -29,6 +30,17 @@ pip install -e ".[dev]"
 pre-commit install   # enables the secret scan (gitleaks) and ruff on every commit
 pytest
 ruff check . && ruff format --check .
+```
+
+## Quick look (development install)
+
+```bash
+cp profile.example.yaml profile.yaml        # edit: where you may work, languages, years
+cp companies.example.yaml companies.yaml    # edit: which company boards to read
+jobgate companies validate
+jobgate run                                 # fetch -> filter -> score -> report
+# reports/report.md and reports/report.csv; `jobgate --help` lists every command
+jobgate mark <id> applied                   # id is shown in the report
 ```
 
 ## Profile

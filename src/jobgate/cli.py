@@ -73,9 +73,9 @@ def main(
     cache_dir: Annotated[Path, typer.Option(help="Where fetched answers are cached.")] = Path(
         ".jobgate_cache"
     ),
-    no_cache: Annotated[
-        bool, typer.Option(help="Ignore and do not write the fetch cache.")
-    ] = False,
+    cache: Annotated[
+        bool, typer.Option("--cache/--no-cache", help="Use the daily fetch cache.")
+    ] = True,
     reports_dir: Annotated[Path, typer.Option(help="Where reports are written.")] = Path("reports"),
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Show debug logging.")] = False,
 ) -> None:
@@ -83,7 +83,7 @@ def main(
     logging.basicConfig(level=logging.DEBUG if verbose else logging.ERROR)
     if weights is None and DEFAULT_WEIGHTS_FILE.exists():
         weights = DEFAULT_WEIGHTS_FILE
-    ctx.obj = Options(db, profile, companies, weights, cache_dir, not no_cache, reports_dir)
+    ctx.obj = Options(db, profile, companies, weights, cache_dir, cache, reports_dir)
 
 
 def _opts(ctx: typer.Context) -> Options:
