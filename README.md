@@ -212,6 +212,12 @@ numbers in `docs/*_report.md` are labelled preliminary and should not be quoted.
 - English-language postings only; rules are sentence-level regular expressions.
 - Scoring is keyword-based. A title like "Technical Support Engineer" earns partial role points
   because it contains "engineer". It is a ranking aid, not a judgement of fit.
+- The level part only looks at a fixed list of seniority words in the title (senior, staff,
+  principal, lead, manager, director, architect, ...). Such a title gets zero level points, but
+  nothing is subtracted and the posting is not flagged. In a real run with the example profile, a
+  "Senior Partner Solutions Architect" posting still made the top three because it matched many
+  of the profile's technology words and its location, and few postings scored higher. See the
+  [draft issue](docs/issue_drafts/senior-title-penalty.md).
 - Some boards write only "In-Office" or "Hybrid" in the location field; those go to **check**.
 - Only Greenhouse, Lever (global host) and Ashby are supported. Lever's EU host is not.
 - Test runs so far were on macOS with Python 3.14; CI runs Python 3.12 and 3.13.
