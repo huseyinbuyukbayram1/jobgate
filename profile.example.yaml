@@ -1,0 +1,53 @@
+# Example profile for a FICTIONAL person: a new graduate based in Germany with EU
+# work rights. Copy to profile.yaml (git-ignored) and edit. Never commit your real one.
+#
+# All words are matched case-insensitively as whole words against posting text.
+
+# Where you may work WITHOUT employer sponsorship. A "no sponsorship" statement only
+# blocks you when the job is outside these regions.
+work_authorization:
+  regions: [germany, netherlands, spain, portugal, ireland, france, italy, eu, european union]
+
+# Nationalities you hold. A "citizenship required" sentence passes only if it names one.
+citizenships: [german, germany, eu, european]
+
+# Set true only if you really hold a government security clearance.
+security_clearance: false
+
+# Reject postings whose required experience (lower bound) is above this many years.
+max_experience_years: 2
+
+# Languages you can work in (lowercase English names). A posting that requires another
+# language is rejected unless it only lists it as a plus.
+languages: [english, german]
+
+# Places you would work. Postings whose location matches none are rejected; a bare
+# "Remote" with no region is flagged "check" instead.
+locations:
+  allowed:
+    - germany
+    - berlin
+    - munich
+    - hamburg
+    - netherlands
+    - amsterdam
+    - spain
+    - madrid
+    - barcelona
+    - portugal
+    - lisbon
+    - ireland
+    - dublin
+    - europe
+    - emea
+    - eu
+    - european union
+
+# Time zones you can work in. A posting that requires overlap with another one is rejected.
+timezones:
+  allowed: [cet, cest, utc, gmt, wet, eet, europe]
+
+# reject | ignore
+blockers:
+  video_requirement: reject
+  take_home_assignment: reject
