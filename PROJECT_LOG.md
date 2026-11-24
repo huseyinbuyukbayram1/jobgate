@@ -1,5 +1,16 @@
 # Project log
 
+## PENDING GATES (read before releasing or publishing anything)
+
+- [ ] **Label verification (owner).** Until the owner has set `human_verified=true` on the rows of
+  `tests/data/labeled_postings.csv` (and on the held-out batch `tests/data/heldout_postings.csv`) and
+  re-run `python -m jobgate.evaluation`, **no accuracy number may be written in the README, in any
+  X post, in release notes, or anywhere else public.** The same gate blocks the `v0.1.0` tag.
+  Numbers that already exist in `docs/filter_report.md` and in this log are labelled preliminary:
+  they use AI-suggested labels and the filter was tuned on those rows.
+- [ ] Target to clear the gate: at least 90% accuracy on human-verified rows, with the false
+  rejection rate reported next to it.
+
 Newest entry first.
 
 ## 2026-11-24 - Phase 2: profile, blocker filter, labelled set, accuracy report

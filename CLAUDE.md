@@ -47,6 +47,9 @@ Vize/çalışma izni gerçekten gerekli -> ele (kullanıcının ülke profiline 
 
 Etiketli test seti: 40 ilan (engelli / engelsiz / belirsiz). Repoya tam ilan metni koyma; yalnızca kuralın ilgili cümlelerini kısa alıntı olarak kaynak bağlantısıyla sakla (ya da sentetik yaz). Etiketleri ben doğrularım: sen aday ilanları ve önerilen etiketi CSV olarak hazırla; "human_verified" alanı yalnızca ben onaylayınca true olur. Doğruluk hedefi: doğrulanmış sette en az %90, yanlış eleme oranı raporda ayrıca gösterilir.
 
+## Bekleyen kapı (zorunlu)
+Etiketler ben `human_verified=true` yapana ve değerlendirme yeniden çalışana kadar README'ye, X gönderilerine, sürüm notlarına ya da herhangi bir herkese açık yere DOĞRULUK SAYISI yazma ve v0.1.0 etiketini açma. Ayrıntı: PROJECT_LOG.md başındaki "PENDING GATES".
+
 ## Komutlar
 jobgate fetch | filter | score | report | mark <id> <durum> | run (hepsini sırayla) | companies validate. Aynı komutu iki kez çalıştırmak yinelenen kayıt üretmemeli (test var). Hata mesajları ve --help metinleri açık ve İngilizce olmalı.
 
