@@ -18,6 +18,11 @@ the tag is still only created when the owner says so explicitly.
 
 Newest entry first.
 
+## 2026-11-24 - Terms links and Responsible use
+
+- README terms column now lists, per ATS, the official API doc link and the terms page that was found. All six links were opened (HTTP 200; Greenhouse docs and the Lever and Ashby terms links redirect to their current pages). Lever and Ashby pages are customer terms; the note "no separate terms for the public job-board API were found" sits next to them. For Greenhouse no terms page was provided or found, so the README says "none found". This replaces the earlier "to be verified" entries in the Phase 4 text below.
+- New README "Responsible use" section (public endpoints only, no auth/scraping/bypass, low rate, User-Agent, cache, per-source switch, not legal advice); `docs/sources.md` carries the same information. `tests/test_docs.py` checks the links, the note and the section.
+
 ## 2026-11-24 - Gate change, held-out label fixes, evaluation section
 
 **Done**

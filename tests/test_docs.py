@@ -24,8 +24,31 @@ def test_readme_discloses_ai_assisted_development():
     assert "Claude Code" in README and "AI assistance" in README
 
 
-def test_readme_marks_unverified_terms_links_instead_of_inventing_them():
-    assert README.count("to be verified") >= 3
+def test_readme_lists_the_documented_links_and_the_customer_terms_note():
+    for link in (
+        "https://developers.greenhouse.io/job-board.html",
+        "https://github.com/lever/postings-api",
+        "https://www.lever.co/terms-of-service",
+        "https://developers.ashbyhq.com/docs/public-job-posting-api",
+        "https://www.ashbyhq.com/terms",
+    ):
+        assert link in README, link
+    note = "customer terms; no separate terms for the public job-board API were found"
+    assert README.count(note) == 2
+    assert "to be verified" not in README
+
+
+def test_readme_has_a_responsible_use_section_with_a_legal_disclaimer():
+    section = README.split("## Responsible use", 1)[1].split("\n## ", 1)[0]
+    for phrase in ("User-Agent", "cached", "switched off", "not legal advice"):
+        assert phrase in section, phrase
+
+
+def test_sources_doc_carries_the_same_terms_information():
+    sources = (ROOT / "docs" / "sources.md").read_text(encoding="utf-8")
+    assert "https://www.lever.co/terms-of-service" in sources
+    assert "https://www.ashbyhq.com/terms" in sources
+    assert "not legal advice" in sources
 
 
 def test_readme_says_what_it_does_not_do_and_has_the_diagram():

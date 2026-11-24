@@ -29,5 +29,8 @@ everything below is under **Unreleased** until the project owner decides to cut 
 - README with setup, example output, architecture diagram, limitations and roadmap; CI (ruff,
   pytest on Python 3.12 and 3.13, secret scan) and a pre-commit secret scan.
 
+### Documentation
+- Terms-of-use links per ATS (customer terms, with a note that no separate API terms were found) and a "Responsible use" section.
+
 ### Fixed
 - CLI help tests no longer depend on terminal colour or width.

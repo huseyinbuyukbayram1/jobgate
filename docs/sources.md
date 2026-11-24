@@ -15,7 +15,7 @@ on disk per calendar day so the same endpoint is not requested twice on one day.
 ## Greenhouse
 
 - Endpoint: `GET https://boards-api.greenhouse.io/v1/boards/{board_token}/jobs?content=true`
-- Docs: <https://docs.greenhouse.io/job-board.html> (the old `developers.greenhouse.io/job-board.html` redirects there with HTTP 301)
+- Docs: <https://developers.greenhouse.io/job-board.html> (opened 2026-11-24: redirects to <https://docs.greenhouse.io/job-board.html>, HTTP 200)
 - Checked by hand: `stripe`, `airbnb`, `cloudflare` (all HTTP 200, JSON).
 - `content=true` is required to get the description (plus departments and offices).
 - The description is HTML encoded as entities; `html_to_text` unescapes it.
@@ -43,7 +43,22 @@ on disk per calendar day so the same endpoint is not requested twice on one day.
 
 ## Terms of use
 
-None of the three API documentation pages links a terms-of-use page for the public
-job-board API, so none is claimed here. Until the owner has confirmed the relevant
-terms, the README lists the API documentation links only. Each source can be switched
-off in the companies file (`sources:`) if terms change.
+Links opened on 2026-11-24 (all HTTP 200):
+
+| ATS | API documentation | Terms page found | Note |
+|-----|-------------------|------------------|------|
+| Greenhouse | <https://developers.greenhouse.io/job-board.html> | none | no terms page found for the job-board API |
+| Lever | <https://github.com/lever/postings-api> | <https://www.lever.co/terms-of-service> (redirects to `/legal/terms-of-service`, "Terms of Service", last updated August 25, 2023) | customer terms; no separate terms for the public job-board API were found |
+| Ashby | <https://developers.ashbyhq.com/docs/public-job-posting-api> | <https://www.ashbyhq.com/terms> (redirects to `/resources/terms`, "Ashby Customer Terms of Service") | customer terms; no separate terms for the public job-board API were found |
+
+The Lever and Ashby pages govern those vendors' customers' use of their software. None of the
+three API documentation pages links a separate terms page for the public job-board endpoints,
+so nothing more is claimed here. Whether these terms apply to reading public postings is not
+decided by this project; this is not legal advice. Each source can be switched off in the
+companies file (`sources:`) if terms change.
+
+## Responsible use (summary)
+
+Documented public endpoints only; no authentication, scraping or bot-protection bypass; at least
+one second between requests, timeout and at most 3 retries with back-off; explicit `User-Agent`
+with the repository address; a per-day response cache; per-source switch in the companies file.

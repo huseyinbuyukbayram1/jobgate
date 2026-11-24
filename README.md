@@ -214,7 +214,7 @@ numbers in `docs/*_report.md` are labelled preliminary and should not be quoted.
 - Recognise more video-requirement wordings and use city names found in the text when the
   location field is vague.
 - Lever EU host.
-- Confirm each ATS's terms of use (see below).
+- Ask the vendors (or find) whether separate terms exist for the public job-board endpoints.
 
 ## How this project is built
 
@@ -229,16 +229,31 @@ lists the verified endpoint shapes, the politeness rules (explicit User-Agent, d
 requests, timeout, at most 3 retries with back-off, daily cache) and known differences from
 the docs.
 
-| ATS | Official API documentation | Terms of use |
-|-----|----------------------------|--------------|
-| Greenhouse | <https://docs.greenhouse.io/job-board.html> | to be verified |
-| Lever | <https://github.com/lever/postings-api> | to be verified |
-| Ashby | <https://developers.ashbyhq.com/docs/public-job-posting-api> | to be verified |
+| ATS | Official API documentation | Terms page found |
+|-----|----------------------------|------------------|
+| Greenhouse | <https://developers.greenhouse.io/job-board.html> | none found (see below) |
+| Lever | <https://github.com/lever/postings-api> | <https://www.lever.co/terms-of-service>: customer terms; no separate terms for the public job-board API were found |
+| Ashby | <https://developers.ashbyhq.com/docs/public-job-posting-api> | <https://www.ashbyhq.com/terms>: customer terms; no separate terms for the public job-board API were found |
 
-The documentation pages above do not link a separate terms-of-use page for these public
-endpoints, so no link is given and none is invented. Until that is checked, please read each
-vendor's own terms before running jobgate at scale. Any source can be switched off from the
-companies file (`sources:`) if its terms turn out to forbid this use.
+All links were opened and exist (checked 2026-11-24; the Greenhouse link redirects to
+`docs.greenhouse.io`, the Lever and Ashby terms links redirect to their current legal pages). The
+Lever and Ashby pages are the vendors' terms for their *customers*. None of the three API
+documentation pages links a separate terms page for the public job-board endpoints, and for
+Greenhouse no terms page was linked here at all, so none is claimed. Any source can be switched
+off from the companies file (`sources:`).
+
+## Responsible use
+
+- Only the documented, public, unauthenticated job-board endpoints are called. No login, no
+  scraping of career pages, no getting around bot protection.
+- Requests are slow on purpose: at least one second between requests, a timeout, at most 3
+  retries with back-off, and every answer is cached on disk for the day so the same endpoint is
+  not requested twice.
+- Every request carries an explicit `User-Agent` that points to this repository.
+- A source can be switched off from the companies file (`sources:`) if its terms change.
+- jobgate never applies for you.
+- **This is not legal advice.** Read the terms of the services you use before you run jobgate,
+  especially at scale.
 
 ## Privacy
 
