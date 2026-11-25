@@ -13,7 +13,10 @@ All notable changes are listed here. The format follows
 - Filter rule `STUDENT_STATUS_REQUIRED`: with `student_status: graduated`, a posting that requires current enrollment ("currently pursuing a degree", "must be a student", "returning to school") is rejected. Wording that also welcomes graduates ("or recent graduates", "or equivalent experience") is not.
 - Filter rule `GRADUATION_YEAR_MISMATCH`: with `graduation_year` set, a posting that asks for another graduation year ("graduating in 2027", "class of 2028", a range) is rejected; a range or "or later" that includes your year passes. Soft or conflicting wording gives `GRADUATION_AMBIGUOUS` (check).
 
+- Report: a posting that passed the filter, or needs a check, with role score 0 is listed under a new **Low role match** section (Markdown) instead of **Ranked matches** or **Needs a check**, with its score, breakdown and (for a check) the filter's reasons. The CSV gains `section` and `role_points` columns, and `jobgate run` prints how many postings were set apart. Scores, weights, filter rules and verdicts are unchanged.
+
 ### Changed
+- Role-matching limitation and roadmap item in the README updated: the role-0 threshold is applied, title matching is still keyword-based.
 - Senior-role limitation in the README rewritten for the new rule.
 - The student / graduation-year limitation in the README now describes the new rules; `profile.example.yaml` sets both fields for its fictional graduate.
 

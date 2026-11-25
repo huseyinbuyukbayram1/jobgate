@@ -90,7 +90,14 @@ is first seen, `mark` ignores a status that is already current, and postings tha
 company that was fetched successfully are marked inactive (companies that failed are left alone).
 
 **Report (`report.py`).** Pure functions of the stored rows: ranked matches, "needs a check" with
-the triggering sentences, and counts of rejection reasons. Ties break by company then title, so the
+the triggering sentences, "low role match" and counts of rejection reasons. `is_low_role(row)` is
+true for a passing or to-check posting whose stored role part is 0; such a posting is listed under
+"Low role match" (score and breakdown shown, role 0 spelled out, filter reasons shown for a
+to-check posting) instead of "Ranked matches" or "Needs a check". Only the
+report looks at this: the score is still computed and stored, and verdicts and weights are
+untouched. A row with no stored breakdown is never low role. The CSV gets a `section` column
+(`ranked`, `check`, `low_role_match`, `rejected`) and a `role_points` column; low-role rows follow
+the ranked and check rows and have no rank; `verdict` still holds the filter's verdict. Ties break by company then title, so the
 same database always gives the same bytes. Postings you marked `dropped` are hidden.
 
 **CLI (`cli.py`, typer).** Global options go before the command (`jobgate --db my.db run`).

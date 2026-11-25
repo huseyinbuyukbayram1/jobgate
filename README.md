@@ -97,14 +97,20 @@ Fetched 2277 postings from 10 of 10 companies (2277 new, 0 no longer listed).
 Filtered 2277 postings: 23 pass, 122 check, 2132 reject.
 Scored 145 postings.
 Wrote reports/report.md and reports/report.csv.
-  28: level 10, location 8, compensation 10  Business Development Representative, DACH @ Notion
-  28: level 10, location 8, compensation 10  Business Development Representative, UKI @ Notion
-  28: level 10, location 8, compensation 10  Solutions Consultant, Commercial, DACH @ Notion
+  93 postings with a low role match (role 0) are listed apart in the report.
 ```
 
-`reports/report.md` has three sections: **Ranked matches**, **Needs a check** (each with the
-sentence that made the filter unsure) and a count of **Rejected** postings per reason code.
-The numbers change every day because the boards change; the shape does not.
+`reports/report.md` has four sections: **Ranked matches**, **Needs a check** (each with the
+sentence that made the filter unsure), **Low role match** and a count of **Rejected** postings per
+reason code. A posting that passed the filter, or needs a check, but whose title matches none of
+your `target_roles` (role score 0) is listed under **Low role match**, with its score and
+breakdown (and the filter's reasons, if it needs a check), instead of under Ranked matches or
+Needs a check. In this example run that moved 23 postings that passed (all sales, account and
+recruiting roles, so Ranked matches was empty) and 70 that needed a check; the 52 left under
+**Needs a check** are the engineering-style titles. The numbers change every day because the
+boards change; the shape does not. The CSV has the same split in its `section` column
+(`ranked`, `check`, `low_role_match`) and a `role_points` column; the `verdict` column still says
+`pass` or `check`.
 
 ```markdown
 ### 1. 53: role 15, technology 10, level 20, location 8 — [Software Engineering Intern](https://careers.datadoghq.com/detail/8114161/?gh_jid=8114161)
@@ -234,10 +240,15 @@ numbers in `docs/*_report.md` are labelled preliminary and should not be quoted.
   the description) is only caught by the years-of-experience rule, and only if the text states
   the years. Because "Manager" and "Lead" go to check, non-engineering roles with those words
   show up in the check list.
-- Role matching is keyword-based. With the example profile, non-engineering postings (for
-  example sales roles) can still rank in the top three, because the score only counts title and
-  technology words and does not understand what the job is. "Better role matching" is on the
-  roadmap.
+- Role matching is still keyword-based: a title earns role points when it shares enough words
+  with one of your `target_roles`. A posting with 0 role points is no longer listed under
+  **Ranked matches** (it goes to **Low role match**, still scored), but a non-engineering title
+  that happens to share a word with a target role still ranks, and a good title worded
+  differently from your `target_roles` falls into **Low role match**: in the example run that
+  included titles such as "Security Research Analyst", "Member of Technical Staff" and several
+  "Engineering Manager" postings. The threshold applies to postings that passed the filter and to
+  those that need a check; rejected ones are not listed anyway. If you set the `role` weight to 0
+  in `scoring.yaml`, every posting lands in **Low role match**.
 - Some boards write only "In-Office" or "Hybrid" in the location field; those go to **check**.
 - Only Greenhouse, Lever (global host) and Ashby are supported. Lever's EU host is not.
 - Test runs so far were on macOS with Python 3.14; CI runs Python 3.12 and 3.13.
@@ -249,7 +260,8 @@ numbers in `docs/*_report.md` are labelled preliminary and should not be quoted.
   false-rejection rate next to it.
 - Month-level graduation windows and season wording ("Summer 2027") for the graduation-year rule
   (see [docs/issue_drafts/graduation-year-rule.md](docs/issue_drafts/graduation-year-rule.md)).
-- Better role matching in the score (titles, not just keywords).
+- Better role matching in the score. The "role 0 goes to Low role match" threshold is done; title
+  matching itself is still keyword-based (titles, not just keywords).
 - Recognise more video-requirement wordings and use city names found in the text when the
   location field is vague.
 - Lever EU host.

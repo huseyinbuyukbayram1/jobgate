@@ -18,7 +18,7 @@ from jobgate.http import HttpClient
 from jobgate.llm import LlmConfigError, load_llm_config, write_rationales
 from jobgate.llm import make_client as build_llm_client
 from jobgate.profile import ProfileError, load_profile
-from jobgate.report import build_csv, build_markdown
+from jobgate.report import build_csv, build_markdown, is_low_role
 from jobgate.scoring import ScoringError, load_weights, score_job
 from jobgate.storage import STATUSES, Storage, StorageError
 
@@ -225,12 +225,18 @@ def step_report(opts: Options, min_score: int, limit: int | None, include_reject
         build_csv(rows, include_rejected=include_rejected), encoding="utf-8"
     )
     ranked = sorted(
-        (r for r in rows if r.verdict == "pass" and r.status != "dropped"),
+        (r for r in rows if r.verdict == "pass" and r.status != "dropped" and not is_low_role(r)),
         key=lambda r: (-(r.score or 0), r.job.company.lower(), r.job.title.lower()),
     )
     typer.echo(f"Wrote {opts.reports_dir / 'report.md'} and {opts.reports_dir / 'report.csv'}.")
     for row in ranked[:5]:
         typer.echo(f"  {row.explanation}  {row.job.title} @ {row.job.company}")
+    low = sum(is_low_role(r) for r in rows if r.status != "dropped")
+    if low:
+        noun, verb = ("posting", "is") if low == 1 else ("postings", "are")
+        typer.echo(
+            f"  {low} {noun} with a low role match (role 0) {verb} listed apart in the report."
+        )
 
 
 # -- commands ---------------------------------------------------------------------------

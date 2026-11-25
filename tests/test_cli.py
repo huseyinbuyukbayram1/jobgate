@@ -319,3 +319,40 @@ def test_a_broken_llm_config_is_a_clear_error(env):
     (tmp / "llm.yaml").write_text("llm:\n  provider: skynet\n", encoding="utf-8")
     result = invoke([*base, "--llm-config", str(tmp / "llm.yaml")], "run")
     assert result.exit_code == 2 and "llm" in result.output.lower()
+
+
+def test_a_low_role_posting_is_listed_apart_and_two_runs_give_identical_reports(env, monkeypatch):
+    tmp, base = env
+    data = fixture("greenhouse_jobs.json")
+    sales = {**data["jobs"][0], "id": 9001, "title": "Business Development Representative"}
+    data["jobs"].append(sales)
+
+    def with_sales(request):
+        if request.url.host == "boards-api.greenhouse.io" and "/gone" not in request.url.path:
+            return httpx.Response(200, json=data)
+        return router(request)
+
+    monkeypatch.setattr(
+        cli,
+        "make_client",
+        lambda opts: HttpClient(
+            cache_dir=tmp / "cache",
+            min_interval=0,
+            max_retries=0,
+            transport=httpx.MockTransport(with_sales),
+        ),
+    )
+    first_run = invoke(base, "run")
+    assert first_run.exit_code == 0
+    assert "with a low role match (role 0)" in plain(first_run.output)
+    report = (tmp / "reports" / "report.md").read_text(encoding="utf-8")
+    csv_text = (tmp / "reports" / "report.csv").read_text(encoding="utf-8")
+    ranked = report.split("## Ranked matches", 1)[1].split("\n## ", 1)[0]
+    low = report.split("## Low role match", 1)[1].split("\n## ", 1)[0]
+    assert "Junior Software Engineer" in ranked
+    assert "Business Development Representative" not in ranked
+    assert "Business Development Representative" in low
+    assert "low_role_match" in csv_text
+    assert invoke(base, "run").exit_code == 0
+    assert (tmp / "reports" / "report.md").read_text(encoding="utf-8") == report
+    assert (tmp / "reports" / "report.csv").read_text(encoding="utf-8") == csv_text
