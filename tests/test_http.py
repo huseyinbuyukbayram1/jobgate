@@ -3,7 +3,8 @@ from datetime import date
 import httpx
 import pytest
 
-from jobgate.http import FetchError, HttpClient
+import jobgate
+from jobgate.http import DEFAULT_USER_AGENT, FetchError, HttpClient
 
 UA = "jobgate-test/0.0 (+https://github.com/example/jobgate)"
 
@@ -48,6 +49,22 @@ def test_get_json_sends_explicit_user_agent(tmp_path):
     client, _ = make_client(tmp_path, handler)
     assert client.get_json("https://example.com/a") == {"ok": True}
     assert seen == [UA]
+
+
+def test_default_user_agent_is_built_from_the_package_version(tmp_path):
+    expected = f"jobgate/{jobgate.__version__} (+https://github.com/huseyinbuyukbayram1/jobgate)"
+    assert DEFAULT_USER_AGENT == expected
+    seen = []
+
+    def handler(request):
+        seen.append(request.headers["user-agent"])
+        return httpx.Response(200, json={})
+
+    client = HttpClient(
+        cache_dir=tmp_path, min_interval=0.0, transport=httpx.MockTransport(handler)
+    )
+    client.get_json("https://example.com/a")
+    assert seen == [expected]
 
 
 def test_same_url_same_day_hits_network_once(tmp_path):

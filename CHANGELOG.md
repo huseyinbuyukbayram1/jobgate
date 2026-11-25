@@ -5,20 +5,27 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-25
+
+### Known limitations
+- The evaluation labels are AI-suggested and not human-verified, so no accuracy claim is made. The spot check in `docs/spot_checks.md` was read by the AI assistant only, not yet by the repository owner.
+- Role matching is keyword-based. A title worded differently from your `target_roles` gets 0 role points, so some technical titles (for example "Security Research Analyst" or "Member of Technical Staff") land in **Low role match**.
+- With the example profile, **Ranked matches** can be empty: in the example run every posting that passed the filter had 0 role points, and the engineering postings were in **Needs a check** or **Low role match**.
+- Graduation windows are checked by year only (no months), and a season such as "Summer 2027" is not read as a graduation year.
+
 ### Added
 - Filter rule `SENIORITY_IN_TITLE`: a title with Senior, Sr., Staff Engineer, Principal, Director, VP or Head of is rejected; Lead, Architect or Manager only need a check. Matching is by whole word, on the title only.
-
 - Two optional profile fields, `student_status` (`graduated` | `enrolled`) and `graduation_year`.
   Profiles without them behave exactly as before.
 - Filter rule `STUDENT_STATUS_REQUIRED`: with `student_status: graduated`, a posting that requires current enrollment ("currently pursuing a degree", "must be a student", "returning to school") is rejected. Wording that also welcomes graduates ("or recent graduates", "or equivalent experience") is not.
 - Filter rule `GRADUATION_YEAR_MISMATCH`: with `graduation_year` set, a posting that asks for another graduation year ("graduating in 2027", "class of 2028", a range) is rejected; a range or "or later" that includes your year passes. Soft or conflicting wording gives `GRADUATION_AMBIGUOUS` (check).
-
 - Report: a posting that passed the filter, or needs a check, with role score 0 is listed under a new **Low role match** section (Markdown) instead of **Ranked matches** or **Needs a check**, with its score, breakdown and (for a check) the filter's reasons. The CSV gains `section` and `role_points` columns, and `jobgate run` prints how many postings were set apart. Scores, weights, filter rules and verdicts are unchanged.
+- Label schema: `SENIORITY_IN_TITLE` is a blocker category in `docs/labeling.md`, a label cell may list several acceptable reason codes separated by `|`, and the suggested labels of ten development-set rows were updated (recorded under "Label changes"). They are still AI suggestions, not human-verified.
+- `docs/spot_checks.md`: a small, narrow spot check of rejections by the student-status and graduation-year rules, with its limits. It is not an accuracy claim.
 
 ### Changed
-- Role-matching limitation and roadmap item in the README updated: the role-0 threshold is applied, title matching is still keyword-based.
-- Senior-role limitation in the README rewritten for the new rule.
-- The student / graduation-year limitation in the README now describes the new rules; `profile.example.yaml` sets both fields for its fictional graduate.
+- The `User-Agent` version is now taken from the package version (`jobgate.__version__`) instead of a hard-coded string, so it reads `jobgate/0.2.0`.
+- README limitations and roadmap updated for the seniority, student-status, graduation-year and role-matching changes; `profile.example.yaml` sets both new profile fields for its fictional graduate.
 
 ## [0.1.0] - 2026-11-25
 

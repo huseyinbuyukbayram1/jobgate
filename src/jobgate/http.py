@@ -14,9 +14,11 @@ from typing import Any, Literal
 
 import httpx
 
+from jobgate import __version__
+
 logger = logging.getLogger(__name__)
 
-DEFAULT_USER_AGENT = "jobgate/0.1 (+https://github.com/huseyinbuyukbayram1/jobgate)"
+DEFAULT_USER_AGENT = f"jobgate/{__version__} (+https://github.com/huseyinbuyukbayram1/jobgate)"
 
 ErrorKind = Literal["not_found", "http_error", "network_error", "invalid_response"]
 

@@ -51,7 +51,7 @@ purpose). Then open `reports/report.md`, or `reports/report.csv` in a spreadshee
 After you apply to something, or decide it is not for you:
 
 ```bash
-jobgate mark 2aea9a3d applied        # the id is printed in the report
+jobgate mark aca9de60 applied        # the id is printed in the report
 jobgate mark 6c501ff2 dropped --note "needs on-site"
 ```
 
@@ -105,20 +105,27 @@ sentence that made the filter unsure), **Low role match** and a count of **Rejec
 reason code. A posting that passed the filter, or needs a check, but whose title matches none of
 your `target_roles` (role score 0) is listed under **Low role match**, with its score and
 breakdown (and the filter's reasons, if it needs a check), instead of under Ranked matches or
-Needs a check. In this example run that moved 23 postings that passed (all sales, account and
-recruiting roles, so Ranked matches was empty) and 70 that needed a check; the 52 left under
-**Needs a check** are the engineering-style titles. The numbers change every day because the
+Needs a check. In this example run that moved 23 postings that passed (sales, account,
+recruiting and design roles, so Ranked matches was empty) and 70 that needed a check. The 52 left
+under **Needs a check** are mostly engineering-style titles, and all of them are from one company
+whose location field was vague. The numbers change every day because the
 boards change; the shape does not. The CSV has the same split in its `section` column
 (`ranked`, `check`, `low_role_match`) and a `role_points` column; the `verdict` column still says
 `pass` or `check`.
 
+An entry under **Needs a check** looks like this (the line starting with `-` is the reason and
+the sentence behind it):
+
 ```markdown
-### 1. 53: role 15, technology 10, level 20, location 8 — [Software Engineering Intern](https://careers.datadoghq.com/detail/8114161/?gh_jid=8114161)
-Datadog · Madrid, Spain · posted 2026-09-08 · id `2aea9a3d` · status: found
+### 1. 77: role 30, technology 30, level 10, location 7 — [Software Engineer](https://boards.greenhouse.io/cloudflare/jobs/8212060?gh_jid=8212060)
+Cloudflare · Hybrid · posted 2026-09-18 · id `aca9de60` · status: found
+
+- LOCATION_UNCLEAR: Hybrid
 ```
 
-`53: role 15, technology 10, level 20, location 8` reads as: 53 out of 100, made of 15 role
-points, 10 technology points, 20 level points and 8 location points (parts that scored zero are left out).
+`77: role 30, technology 30, level 10, location 7` reads as: 77 out of 100, made of 30 role
+points, 30 technology points, 10 level points and 7 location points (parts that scored zero are
+left out, except in **Low role match**, where `role 0` is always shown).
 
 ## How it works
 
@@ -239,7 +246,8 @@ numbers in `docs/*_report.md` are labelled preliminary and should not be quoted.
   **check**. A senior posting with a neutral title ("Software Engineer" that asks for ten years in
   the description) is only caught by the years-of-experience rule, and only if the text states
   the years. Because "Manager" and "Lead" go to check, non-engineering roles with those words
-  show up in the check list.
+  show up in the check list, or under **Low role match** when their title matches none of your
+  target roles.
 - Role matching is still keyword-based: a title earns role points when it shares enough words
   with one of your `target_roles`. A posting with 0 role points is no longer listed under
   **Ranked matches** (it goes to **Low role match**, still scored), but a non-engineering title
