@@ -7,7 +7,7 @@ def test_package_imports():
 def test_package_exposes_version():
     import jobgate
 
-    assert jobgate.__version__ == "0.2.0"
+    assert jobgate.__version__ == "0.3.0"
 
 
 def test_package_version_matches_pyproject():

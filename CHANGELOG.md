@@ -5,12 +5,20 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-25
+
+### Known limitations
+- The evaluation labels are AI-suggested and not human-verified, so no accuracy claim is made. The spot check in `docs/spot_checks.md` was read by the AI assistant only, not yet by the repository owner.
+- A vague location field ("Hybrid", "In-Office") still makes a posting a **check**, even when the text names the city. Reading the place from the text is not implemented: a trial of it changed the verdict of one held-out posting, and that set must stay untouched until its labels are verified.
+- Role matching reads the title only and uses a hand-written synonym list, so a title worded in a way it does not cover still gets 0 role points and lands in **Low role match**; a title that shares a word with a target role still earns partial points.
+- With the example profile, **Ranked matches** is empty in the example run: every posting that passed the filter had 0 role points, and the engineering postings were under **Needs a check** because their location field is vague.
+- The Lever EU host has only been tested against recorded fixtures, never with a real EU-hosted board.
+
 ### Added
 - Role matching reads the title more carefully (still rule-based and explainable): the title is normalised, `role_synonyms` in `scoring.example.yaml` (also the built-in default) map titles such as "member of technical staff", "developer" or "swe" to "software engineer", and a whole target phrase scores higher than scattered words, a phrase only in a later part of the title, or a partial match. The report names the match that counted (`role match: ...`, and a `role_match` CSV column); the database gets a `role_match` column (older databases are upgraded on open). Weights still add up to 100 and no filter verdict changes.
-
 - `scripts/spot_check_sample.py`: draws the rows of a spot check from a jobgate database with a seed (read-only, same database and seed give the same rows); `docs/spot_checks.md` refers to it.
 - Lever EU host: a Lever company can set `region: eu` in `companies.yaml` to be fetched from `api.eu.lever.co` (same path and parameters). Covered by fixture tests only; never tried with a real EU-hosted board. `region` is rejected on other sources, and the same site name may appear once per region.
-- `jobgate --version` prints the installed version (`jobgate 0.2.0`) and exits.
+- `jobgate --version` prints the installed version (`jobgate 0.3.0`) and exits.
 - `jobgate check [FILE] [--title TEXT] [--location TEXT]`: run the filter rules on one pasted posting (a file, or stdin) and print the verdict with each reason code and its sentence. No network, no database, no LLM. Without `--location` the location rule is skipped and the output says so.
 
 ### Changed

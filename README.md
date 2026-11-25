@@ -303,7 +303,9 @@ numbers in `docs/*_report.md` are labelled preliminary and should not be quoted.
   partial points. A posting with 0 role points is not listed under **Ranked matches** or **Needs
   a check**; it goes to **Low role match**, still scored. If you set the `role` weight to 0 in
   `scoring.yaml`, every posting lands in **Low role match**.
-- Some boards write only "In-Office" or "Hybrid" in the location field; those go to **check**.
+- Some boards write only "In-Office" or "Hybrid" in the location field; those go to **check**,
+  even if the posting text names the city. jobgate does not read the place from the text (see the
+  roadmap).
 - Only Greenhouse, Lever and Ashby are supported. Lever's EU host (`api.eu.lever.co`) is supported
   with `region: eu` on a Lever company in `companies.yaml`, but only tested against recorded
   fixtures: it has never been tried with a real EU-hosted board, and you have to know which

@@ -1,6 +1,6 @@
 [project]
 name = "jobgate"
-version = "0.2.0"
+version = "0.3.0"
 description = "Open-source job search tool for new grads: filters out application blockers and explains fit scores."
 readme = "README.md"
 license = "MIT"
