@@ -7,8 +7,8 @@
 - **Run:** one real run with `profile.example.yaml` (a fictional graduate: `student_status: graduated`,
   `graduation_year: 2026`) on the 10 companies of `companies.example.yaml`. That run contained 56
   decisions carrying `STUDENT_STATUS_REQUIRED` and 68 carrying `GRADUATION_YEAR_MISMATCH`.
-- **Who judged:** the repository owner read every row, and the AI assistant that helps build this
-  project read every row as a second pair of eyes.
+- **Who judged:** the AI assistant that helps build this project sampled the rows and read and
+  judged every one. The repository owner has **not** read these 20 decisions yet.
 
 ## How the sample was drawn
 
@@ -23,7 +23,7 @@ The evidence sentence is shown exactly as the filter stored it (the filter cuts 
 ## What was judged
 
 One question per row: given the profile above, is rejecting this posting on this sentence right?
-Every row below was marked **reject correct**.
+Every row below was marked **reject correct** by the AI assistant.
 
 ## `STUDENT_STATUS_REQUIRED`
 
@@ -57,6 +57,8 @@ Every row below was marked **reject correct**.
 
 ## Limits
 
+- **Not reviewed by a human yet.** The sample was drawn and judged by the AI assistant only. The
+  repository owner has not read these 20 decisions, so no row has an independent human check.
 - **The sample is narrow.** It comes from a handful of companies (Zoox, Ramp, Notion, Datadog,
   Cloudflare, Palantir) and many rows repeat the same sentence (for example three Ramp postings
   share one sentence and several Palantir postings share "Must be planning on graduating in 2028.").
