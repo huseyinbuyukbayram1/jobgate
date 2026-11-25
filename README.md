@@ -52,7 +52,7 @@ After you apply to something, or decide it is not for you:
 
 ```bash
 jobgate mark 2aea9a3d applied        # the id is printed in the report
-jobgate mark 038b1275 dropped --note "needs on-site"
+jobgate mark 6c501ff2 dropped --note "needs on-site"
 ```
 
 Running any command twice never creates duplicates, and the second `jobgate run` re-uses
@@ -91,13 +91,13 @@ A real run with the example profile and the 10 example companies (public posting
 
 ```text
 $ jobgate run
-Fetched 2263 postings from 10 of 10 companies (2263 new, 0 no longer listed).
-Filtered 2263 postings: 47 pass, 222 check, 1994 reject.
-Scored 269 postings.
+Fetched 2277 postings from 10 of 10 companies (2277 new, 0 no longer listed).
+Filtered 2277 postings: 24 pass, 130 check, 2123 reject.
+Scored 154 postings.
 Wrote reports/report.md and reports/report.csv.
   53: role 15, technology 10, level 20, location 8  Software Engineering Intern @ Datadog
-  40: technology 30, location 10  Senior Partner Solutions Architect (Pan-EMEA GSI) @ Datadog
-  38: technology 30, location 8  Technical Account Manager 2 - Dublin/London @ Datadog
+  28: level 10, location 8, compensation 10  Business Development Representative, DACH @ Notion
+  28: level 10, location 8, compensation 10  Business Development Representative, UKI @ Notion
 ```
 
 `reports/report.md` has three sections: **Ranked matches**, **Needs a check** (each with the
@@ -135,7 +135,9 @@ and cannot change a verdict or a score. More detail: [docs/architecture.md](docs
 A rejected or "check" posting always carries a reason code and the sentence that triggered it,
 for example `VISA_NO_SPONSORSHIP`, `CITIZENSHIP_REQUIRED`, `CLEARANCE_REQUIRED`,
 `VIDEO_REQUIRED`, `EXPERIENCE_TOO_HIGH`, `LANGUAGE_NOT_IN_PROFILE`, `LOCATION_OUTSIDE_PROFILE`,
-`SPONSORSHIP_CONFLICT` (one sentence says "we sponsor", another says "no sponsorship").
+`SPONSORSHIP_CONFLICT` (one sentence says "we sponsor", another says "no sponsorship"),
+`SENIORITY_IN_TITLE` (the title says Senior, Sr., Staff Engineer, Principal, Director, VP or Head of:
+reject; Lead, Architect or Manager: only check, because "Lead Generation Intern" exists).
 When the text is ambiguous the rule prefers **check** over a wrong **reject**.
 
 ## Optional: a short LLM rationale
@@ -212,12 +214,16 @@ numbers in `docs/*_report.md` are labelled preliminary and should not be quoted.
 - English-language postings only; rules are sentence-level regular expressions.
 - Scoring is keyword-based. A title like "Technical Support Engineer" earns partial role points
   because it contains "engineer". It is a ranking aid, not a judgement of fit.
-- The level part only looks at a fixed list of seniority words in the title (senior, staff,
-  principal, lead, manager, director, architect, ...). Such a title gets zero level points, but
-  nothing is subtracted and the posting is not flagged. In a real run with the example profile, a
-  "Senior Partner Solutions Architect" posting still made the top three because it matched many
-  of the profile's technology words and its location, and few postings scored higher. See the
-  [draft issue](docs/issue_drafts/senior-title-penalty.md).
+- Seniority is judged from the **title only**, with a fixed word list: Senior, Sr., Staff Engineer,
+  Principal, Director, VP and Head of are rejected; Lead, Architect and Manager are sent to
+  **check**. A senior posting with a neutral title ("Software Engineer" that asks for ten years in
+  the description) is only caught by the years-of-experience rule, and only if the text states
+  the years. Because "Manager" and "Lead" go to check, non-engineering roles with those words
+  show up in the check list.
+- Role matching is keyword-based. With the example profile, non-engineering postings (for
+  example sales roles) can still rank in the top three, because the score only counts title and
+  technology words and does not understand what the job is. "Better role matching" is on the
+  roadmap.
 - Some boards write only "In-Office" or "Hybrid" in the location field; those go to **check**.
 - Only Greenhouse, Lever (global host) and Ashby are supported. Lever's EU host is not.
 - Test runs so far were on macOS with Python 3.14; CI runs Python 3.12 and 3.13.

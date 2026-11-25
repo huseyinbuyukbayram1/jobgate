@@ -166,9 +166,12 @@ def test_filter_accuracy_on_the_committed_set(profile):
 
 def test_correct_decisions_carry_the_expected_reason_code(profile):
     for outcome in evaluate_rows(load_labeled(DATA), profile).outcomes:
-        expected = outcome.posting.suggested_reason
-        if expected and outcome.correct:
-            assert expected in outcome.decision.codes, outcome.posting.id
+        # A cell may list several acceptable codes separated by "|" (documented in
+        # docs/labeling.md); at least one of them must be present. Single-code cells
+        # are checked exactly as before.
+        accepted = [c for c in outcome.posting.suggested_reason.split("|") if c]
+        if accepted and outcome.correct:
+            assert any(c in outcome.decision.codes for c in accepted), outcome.posting.id
 
 
 # -- the held-out batch (filter was never tuned on it) -----------------------------------

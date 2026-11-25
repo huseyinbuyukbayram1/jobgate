@@ -5,6 +5,12 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Filter rule `SENIORITY_IN_TITLE`: a title with Senior, Sr., Staff Engineer, Principal, Director, VP or Head of is rejected; Lead, Architect or Manager only need a check. Matching is by whole word, on the title only.
+
+### Changed
+- Senior-role limitation in the README rewritten for the new rule.
+
 ## [0.1.0] - 2026-11-25
 
 ### Known limitations

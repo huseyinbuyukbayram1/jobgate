@@ -14,6 +14,19 @@ with EU work rights, English and German, at most 2 years of experience asked).
 | `clear` | nothing in the excerpt blocks this profile | `pass` |
 | `uncertain` | unclear or contradicting wording, a human should look | `check` |
 
+### Blocker categories
+
+`suggested_reason` names the rule code that should fire. A cell may list several acceptable
+codes separated by `|` (for example `VISA_NO_SPONSORSHIP|SENIORITY_IN_TITLE`); a correct
+decision then has to carry at least one of them. A single code is checked exactly.
+
+`SENIORITY_IN_TITLE` is a blocker category on its own, judged from the **title only**:
+
+| title words | label | filter returns |
+|-------------|-------|----------------|
+| Senior, Sr., Staff Engineer/Developer/Scientist, Principal, Director, VP, Vice President, Head of | `blocked` | `reject` |
+| Lead, Architect, Manager | `uncertain` | `check` (for example "Lead Generation Intern" exists) |
+
 ## How the owner verifies labels
 
 The labels were **suggested by the AI assistant** by reading the excerpts. They do not count
@@ -67,3 +80,30 @@ Result in `docs/heldout_report.md` (preliminary, unverified labels). Findings:
    location would slip through.
 
 These are candidates for a later fix, to be checked on a *new* unseen batch.
+
+## Label changes
+
+All labels below are still **AI suggestions**; `human_verified` stays `false` on every row.
+
+### 2026-11-25: `SENIORITY_IN_TITLE` added to the label schema
+
+Reason for every change: the schema gained the category `SENIORITY_IN_TITLE` (see
+"Blocker categories"), so titles with seniority words are now labelled by that rule. Only
+`tests/data/labeled_postings.csv` changed; the held-out CSV was not touched.
+
+| id | title | old label | new label | new reason |
+|----|-------|-----------|-----------|------------|
+| L002 | Senior Account Executive, Chile | blocked / `VISA_NO_SPONSORSHIP` | blocked | `VISA_NO_SPONSORSHIP` or `SENIORITY_IN_TITLE` (either accepted) |
+| L020 | Sr. Manager, Ads Product Marketing | clear | blocked | `SENIORITY_IN_TITLE` |
+| L023 | Senior / Staff Fullstack Engineer | clear | blocked | `SENIORITY_IN_TITLE` |
+| L028 | Senior Data Scientist, Guest & Host | uncertain / `LOCATION_UNCLEAR` | blocked | `SENIORITY_IN_TITLE` |
+| L017 | Artist & Label Partnerships Manager - GSA | clear | uncertain | `SENIORITY_IN_TITLE` |
+| L021 | Manager, Mid-Market Sales | clear | uncertain | `SENIORITY_IN_TITLE` |
+| L022 | Talent Engagement Marketing Manager | clear | uncertain | `SENIORITY_IN_TITLE` |
+| L024 | Europe Trade Compliance Lead | clear | uncertain | `SENIORITY_IN_TITLE` |
+| L025 | Market Manager, DACH (Hotels) | clear | uncertain | `SENIORITY_IN_TITLE` |
+| L026 | Engineering Manager, Ads Product Catalogs | clear | uncertain | `SENIORITY_IN_TITLE` |
+
+Caveat: these labels were changed after the rule existed, to match the schema, so the
+development set agreeing with the filter says little about accuracy. Only owner-verified
+rows count (see "How the owner verifies labels").

@@ -391,3 +391,89 @@ def test_fluently_counts_as_a_language_requirement():
 @pytest.mark.parametrize("location", ["In-Office", "Hybrid", "In person"])
 def test_workplace_mode_words_alone_are_an_unclear_location(location):
     assert codes(run(location=location)) == {"LOCATION_UNCLEAR"}
+
+
+# -- seniority in the title -------------------------------------------------------------
+
+
+def run_title(title, description=""):
+    return evaluate(make_job(description, title=title), make_profile())
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Senior Partner Solutions Architect (Pan-EMEA GSI)",
+        "Senior Software Engineer",
+        "Sr. Backend Engineer",
+        "Sr Data Engineer",
+        "Staff Engineer, Payments",
+        "Staff Software Engineer",
+        "Principal Engineer",
+        "Principal Product Designer",
+        "Director of Engineering",
+        "VP, Engineering",
+        "Vice President of Data",
+        "Head of Platform",
+        "Backend Engineer (SENIOR)",
+    ],
+)
+def test_explicit_seniority_words_in_the_title_are_rejected(title):
+    decision = run_title(title)
+    assert decision.verdict is Verdict.REJECT
+    reason = next(r for r in decision.reasons if r.code == "SENIORITY_IN_TITLE")
+    assert reason.verdict is Verdict.REJECT
+    assert reason.evidence == title
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Software Engineer, Lead Platform",
+        "Tech Lead",
+        "Solutions Architect",
+        "Engineering Manager",
+        "Lead Generation Intern",
+        "Architect Intern",
+        "Product Manager Intern",
+    ],
+)
+def test_ambiguous_seniority_words_only_need_a_check(title):
+    decision = run_title(title)
+    assert decision.verdict is Verdict.CHECK
+    reason = next(r for r in decision.reasons if r.code == "SENIORITY_IN_TITLE")
+    assert reason.verdict is Verdict.CHECK
+    assert reason.evidence == title
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Software Engineering Intern",
+        "New Grad Software Engineer",
+        "Junior Backend Engineer",
+        "Software Engineer I",
+        "Machine Learning Engineer",
+        "Staff Accountant",
+        "Customer Support Staff",
+        "Seniority Calibration Analyst",
+        "Seniors Care Coordinator",
+        "Leadership Development Program, Graduate",
+        "Directorate Liaison Engineer",
+        "Principality Data Engineer",
+        "Headstart Engineer",
+    ],
+)
+def test_other_titles_are_not_affected_and_words_need_word_boundaries(title):
+    assert "SENIORITY_IN_TITLE" not in codes(run_title(title))
+
+
+def test_seniority_reject_is_reported_once_even_with_ambiguous_words_too():
+    decision = run_title("Senior Partner Solutions Architect")
+    found = [r for r in decision.reasons if r.code == "SENIORITY_IN_TITLE"]
+    assert len(found) == 1 and found[0].verdict is Verdict.REJECT
+
+
+def test_seniority_looks_at_the_title_only_not_the_description():
+    decision = run_title("Software Engineer", "You will work with senior staff and a tech lead.")
+    assert "SENIORITY_IN_TITLE" not in codes(decision)

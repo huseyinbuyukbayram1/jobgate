@@ -255,6 +255,27 @@ def rule_experience(job: Job, profile: Profile) -> list[Reason]:
     return reasons
 
 
+# -- seniority in the title -------------------------------------------------------------
+
+# Clear seniority words: a posting with one of these in the title is not a new-grad role.
+_SENIOR_CLEAR = re.compile(
+    r"\bsenior\b|\bsr\b|\bprincipal\b|\bdirector\b|\bvp\b|\bvice president\b|\bhead of\b"
+    r"|\bstaff\b(?:\s+\w+){0,2}?\s+(?:engineer|developer|scientist)\b"
+)
+# Ambiguous words: "Lead Generation Intern" and "Architect Intern" exist, so only ask.
+_SENIOR_AMBIGUOUS = re.compile(r"\blead\b|\barchitect\b|\bmanager\b")
+
+
+def rule_seniority(job: Job, profile: Profile) -> list[Reason]:
+    title = " ".join(job.title.split())
+    lowered = title.lower()
+    if _SENIOR_CLEAR.search(lowered):
+        return [Reason("SENIORITY_IN_TITLE", Verdict.REJECT, title)]
+    if _SENIOR_AMBIGUOUS.search(lowered):
+        return [Reason("SENIORITY_IN_TITLE", Verdict.CHECK, title)]
+    return []
+
+
 # -- location ---------------------------------------------------------------------------
 
 _LOCATION_FILLER = re.compile(
@@ -367,6 +388,7 @@ RULES: list[Callable[[Job, Profile], list[Reason]]] = [
     rule_citizenship,
     rule_video_and_assignment,
     rule_experience,
+    rule_seniority,
     rule_location,
     rule_timezone,
     rule_language,

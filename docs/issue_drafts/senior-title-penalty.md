@@ -1,6 +1,8 @@
 # Issue draft: senior roles can rank high on technology words alone
 
-**Status:** draft only, nothing implemented.
+**Status:** option 3 (mixed) was implemented as the filter rule `SENIORITY_IN_TITLE` (see
+`CHANGELOG.md`, Unreleased). Clear words reject, ambiguous words (lead, architect, manager) check;
+there is no score penalty. This draft is kept for the reasoning.
 
 ## Problem
 

@@ -17,21 +17,19 @@ These labels were proposed by the AI assistant and the filter was tuned while lo
 No percentages are printed for unverified labels.
 
 - Rows: 40
-- Correct: 39 of 40
-- Mismatches: 1
-- Wrongly rejected (not blocked, but rejected): 0 of 20
-- Blocked but passed unflagged: 0 of 20
+- Correct: 40 of 40
+- Mismatches: 0
+- Wrongly rejected (not blocked, but rejected): 0 of 17
+- Blocked but passed unflagged: 0 of 23
 
 ## Confusion matrix (preliminary)
 
 | label \ verdict | pass | check | reject |
 |---|---|---|---|
-| blocked | 0 | 1 | 19 |
-| clear | 13 | 0 | 0 |
-| uncertain | 0 | 7 | 0 |
+| blocked | 0 | 0 | 23 |
+| clear | 5 | 0 | 0 |
+| uncertain | 0 | 12 | 0 |
 
 ## Mismatches (preliminary)
 
-| id | label | verdict | reason codes | excerpt |
-|---|---|---|---|---|
-| L002 | blocked | check | SPONSORSHIP_LOCATION_UNKNOWN, LOCATION_UNCLEAR | To the attention of candidates of Chile: Visa sponsorship is NOT provided for this position. |
+None.

@@ -28,7 +28,7 @@ text and never influences a filter result or a score.
 ## Stage 3 as built (Phase 2): the blocker filter
 
 `profile.py` loads `profile.yaml` (see `profile.example.yaml`). `filters.evaluate(job, profile)`
-runs seven independent rules and returns a `Decision`: a verdict (`pass`, `check`, `reject`)
+runs eight independent rules and returns a `Decision`: a verdict (`pass`, `check`, `reject`)
 plus a list of reasons, each with a stable code and the sentence that triggered it. Any
 `reject` wins over `check`, which wins over `pass`.
 
@@ -38,6 +38,7 @@ plus a list of reasons, each with a stable code and the sentence that triggered 
 | Citizenship / clearance | `CITIZENSHIP_REQUIRED`, `CLEARANCE_REQUIRED` | |
 | Video / take-home | `VIDEO_REQUIRED`, `ASSIGNMENT_REQUIRED` | |
 | Years of experience | `EXPERIENCE_TOO_HIGH` | `EXPERIENCE_AMBIGUOUS` |
+| Seniority in the title | `SENIORITY_IN_TITLE` (Senior, Sr., Staff Engineer, Principal, Director, VP, Head of) | `SENIORITY_IN_TITLE` (Lead, Architect, Manager) |
 | Location | `LOCATION_OUTSIDE_PROFILE` | `LOCATION_UNCLEAR` |
 | Time zone | `TIMEZONE_OUTSIDE_PROFILE` | |
 | Language | `LANGUAGE_NOT_IN_PROFILE` | |
