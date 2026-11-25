@@ -254,7 +254,7 @@ set `human_verified=true` on its row.
 | `heldout_postings.csv` (held-out) | 28 | 0 / 28 |
 
 A separate, small spot check of rejections by the student-status and graduation-year rules is
-in [docs/spot_checks.md](docs/spot_checks.md). It was read and judged by the AI assistant only, not
+in [docs/spot_checks.md](docs/spot_checks.md) (drawn with `scripts/spot_check_sample.py`). It was read and judged by the AI assistant only, not
 yet by the repository owner, and it is not an accuracy claim.
 
 No independent verification has been done, so **this project makes no accuracy claim**. The

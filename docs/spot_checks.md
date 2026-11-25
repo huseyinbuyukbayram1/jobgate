@@ -15,7 +15,19 @@
 For each code, the postings carrying that code were sorted by their internal key and 10 were
 drawn with Python's `random.Random(42).sample`. Only postings where the code was the first or the
 only reason were eligible, so the sample does not show rejections that another rule had already
-decided. The sampling script is not part of the repository.
+decided.
+
+The draw is done by [`scripts/spot_check_sample.py`](../scripts/spot_check_sample.py), which takes
+the database, the seed and the number of rows and prints the same Markdown rows every time:
+
+```bash
+python scripts/spot_check_sample.py --db jobgate.db --seed 42 --count 10 --out sample.md
+```
+
+The script was added after this sample was drawn. Run on the database of the same run (2026-11-25,
+before any later fetch) it gives these 20 postings in this order. The database itself is not in
+the repository, and a database from another day holds different postings, so a later run draws
+different rows with the same seed.
 
 The evidence sentence is shown exactly as the filter stored it (the filter cuts a sentence at
 200 characters). The judgement was made on that sentence and the title, not on the full posting.
