@@ -77,3 +77,40 @@ def test_example_file_is_valid_and_has_ten_companies():
     cfg = load_companies(REPO_ROOT / "companies.example.yaml")
     assert len(cfg.companies) == 10
     assert {c.ats for c in cfg.companies} == {"greenhouse", "lever", "ashby"}
+
+
+def test_region_defaults_to_global_and_eu_is_accepted_for_lever(tmp_path):
+    cfg = load_companies(
+        write(
+            tmp_path,
+            """
+companies:
+  - {name: Acme, ats: lever, token: acme}
+  - {name: Beta, ats: lever, token: beta, region: eu}
+""",
+        )
+    )
+    assert [c.region for c in cfg.companies] == ["global", "eu"]
+
+
+def test_region_eu_is_only_for_lever_and_unknown_regions_are_rejected(tmp_path):
+    with pytest.raises(ConfigError, match="region"):
+        load_companies(
+            write(tmp_path, "companies:\n  - {name: A, ats: greenhouse, token: a, region: eu}\n")
+        )
+    with pytest.raises(ConfigError, match="region"):
+        load_companies(
+            write(tmp_path, "companies:\n  - {name: A, ats: lever, token: a, region: mars}\n")
+        )
+
+
+def test_the_same_lever_site_name_may_exist_on_both_hosts_but_not_twice_on_one(tmp_path):
+    both = """
+companies:
+  - {name: A, ats: lever, token: same}
+  - {name: A EU, ats: lever, token: same, region: eu}
+"""
+    assert len(load_companies(write(tmp_path, both)).companies) == 2
+    twice = both.replace("same, region: eu", "same")
+    with pytest.raises(ConfigError, match="duplicate"):
+        load_companies(write(tmp_path, twice))

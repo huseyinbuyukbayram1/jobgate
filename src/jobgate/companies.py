@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import get_args
+from typing import Literal, get_args
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_valida
 from jobgate.models import AtsName
 
 SUPPORTED_SOURCES: tuple[str, ...] = get_args(AtsName)
+Region = Literal["global", "eu"]
 
 
 class ConfigError(Exception):
@@ -24,6 +25,13 @@ class Company(BaseModel):
     ats: AtsName
     token: str = Field(min_length=1, description="Board token / site name used in the ATS URL")
     enabled: bool = True
+    region: Region = "global"  # only Lever has a separate EU host (api.eu.lever.co)
+
+    @model_validator(mode="after")
+    def _region_only_for_lever(self) -> Company:
+        if self.region != "global" and self.ats != "lever":
+            raise ValueError(f"region: {self.region} is only supported for lever, not {self.ats}")
+        return self
 
 
 class CompanyConfig(BaseModel):
@@ -38,9 +46,9 @@ class CompanyConfig(BaseModel):
     def _fill_sources_and_check_duplicates(self) -> CompanyConfig:
         for name in SUPPORTED_SOURCES:
             self.sources.setdefault(name, True)  # type: ignore[arg-type]
-        seen: set[tuple[str, str]] = set()
+        seen: set[tuple[str, str, str]] = set()
         for company in self.companies:
-            key = (company.ats, company.token.lower())
+            key = (company.ats, company.token.lower(), company.region)
             if key in seen:
                 raise ValueError(f"duplicate company board: {company.ats}/{company.token}")
             seen.add(key)

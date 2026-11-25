@@ -304,7 +304,10 @@ numbers in `docs/*_report.md` are labelled preliminary and should not be quoted.
   a check**; it goes to **Low role match**, still scored. If you set the `role` weight to 0 in
   `scoring.yaml`, every posting lands in **Low role match**.
 - Some boards write only "In-Office" or "Hybrid" in the location field; those go to **check**.
-- Only Greenhouse, Lever (global host) and Ashby are supported. Lever's EU host is not.
+- Only Greenhouse, Lever and Ashby are supported. Lever's EU host (`api.eu.lever.co`) is supported
+  with `region: eu` on a Lever company in `companies.yaml`, but only tested against recorded
+  fixtures: it has never been tried with a real EU-hosted board, and you have to know which
+  instance a company uses.
 - Test runs so far were on macOS with Python 3.14; CI runs Python 3.12 and 3.13.
 - A company that is not on a supported ATS cannot be added.
 
@@ -318,7 +321,6 @@ numbers in `docs/*_report.md` are labelled preliminary and should not be quoted.
   list is hand-written (the "role 0 goes to Low role match" threshold and title synonyms are done).
 - Recognise more video-requirement wordings and use city names found in the text when the
   location field is vague.
-- Lever EU host.
 - Ask the vendors (or find) whether separate terms exist for the public job-board endpoints.
 
 ## How this project is built

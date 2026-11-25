@@ -7,16 +7,30 @@ from typing import Any
 
 from jobgate.adapters.base import Adapter, build_jobs, invalid_shape
 from jobgate.htmltext import html_to_text
+from jobgate.http import HttpClient
 from jobgate.models import Job
 
-BASE_URL = "https://api.lever.co/v0/postings"
+# Lever documents two instances: global and EU (https://github.com/lever/postings-api).
+BASE_URLS = {
+    "global": "https://api.lever.co/v0/postings",
+    "eu": "https://api.eu.lever.co/v0/postings",
+}
+BASE_URL = BASE_URLS["global"]
 
 
 class LeverAdapter(Adapter):
     ats = "lever"
 
-    def request(self, token: str) -> tuple[str, dict[str, str]]:
-        return f"{BASE_URL}/{token}", {"mode": "json"}
+    def request(self, token: str, region: str = "global") -> tuple[str, dict[str, str]]:
+        if region not in BASE_URLS:
+            raise ValueError(f"unknown Lever region {region!r}; use one of {sorted(BASE_URLS)}")
+        return f"{BASE_URLS[region]}/{token}", {"mode": "json"}
+
+    def fetch(  # type: ignore[override]
+        self, client: HttpClient, company: str, token: str, region: str = "global"
+    ) -> list[Job]:
+        url, params = self.request(token, region)
+        return self.parse(client.get_json(url, params), company)
 
     def parse(self, raw: Any, company: str) -> list[Job]:
         if not isinstance(raw, list):

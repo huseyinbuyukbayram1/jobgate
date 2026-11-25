@@ -29,6 +29,8 @@ def router(request):
         return httpx.Response(200, json=fixture("greenhouse_jobs.json"))
     if host == "api.lever.co" and "/good" in path:
         return httpx.Response(200, json=fixture("lever_postings.json"))
+    if host == "api.eu.lever.co" and "/eu-good" in path:
+        return httpx.Response(200, json=fixture("lever_postings.json"))
     if host == "api.ashbyhq.com" and "/good" in path:
         return httpx.Response(200, json=fixture("ashby_board.json"))
     if "/gone" in path:
@@ -121,3 +123,29 @@ def test_report_lists_which_companies_succeeded(tmp_path):
     )
     report = fetch_all(cfg, make_client(tmp_path, router))
     assert report.succeeded == [("lever", "Good")]
+
+
+def test_a_lever_company_with_region_eu_is_fetched_from_the_eu_host(tmp_path):
+    seen = []
+
+    def handler(request):
+        seen.append(request.url.host)
+        return router(request)
+
+    cfg = config(
+        Company(name="Global", ats="lever", token="good"),
+        Company(name="Europe", ats="lever", token="eu-good", region="eu"),
+    )
+    report = fetch_all(cfg, make_client(tmp_path, handler))
+    assert report.failures == [] and report.companies_ok == 2
+    assert sorted(seen) == ["api.eu.lever.co", "api.lever.co"]
+    assert {j.company for j in report.jobs} == {"Global", "Europe"}
+
+
+def test_an_eu_board_that_is_missing_is_a_failure_and_the_run_continues(tmp_path):
+    cfg = config(
+        Company(name="Gone", ats="lever", token="gone", region="eu"),
+        Company(name="G", ats="greenhouse", token="good"),
+    )
+    report = fetch_all(cfg, make_client(tmp_path, router))
+    assert [f.company for f in report.failures] == ["Gone"] and report.companies_ok == 1

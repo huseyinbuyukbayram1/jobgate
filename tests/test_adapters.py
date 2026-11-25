@@ -80,6 +80,25 @@ def test_lever_request_uses_json_mode(tmp_path):
     assert seen[0].params["mode"] == "json"
 
 
+def test_lever_eu_request_goes_to_the_eu_host_with_the_same_path_and_json_mode(tmp_path):
+    seen = []
+    client = client_returning(tmp_path, load("lever_postings.json"), seen)
+    jobs = LeverAdapter().fetch(client, "Acme", "acme", region="eu")
+    assert seen[0].scheme == "https" and seen[0].host == "api.eu.lever.co"
+    assert seen[0].path == "/v0/postings/acme"
+    assert seen[0].params["mode"] == "json"
+    assert [j.ats for j in jobs] == ["lever"] * len(jobs) and jobs
+
+
+def test_lever_defaults_to_the_global_host_and_rejects_an_unknown_region(tmp_path):
+    seen = []
+    client = client_returning(tmp_path, load("lever_postings.json"), seen)
+    LeverAdapter().fetch(client, "Acme", "acme", region="global")
+    assert seen[0].host == "api.lever.co"
+    with pytest.raises(ValueError, match="region"):
+        LeverAdapter().request("acme", region="mars")
+
+
 def test_lever_normalizes_postings_and_skips_malformed_ones():
     jobs = LeverAdapter().parse(load("lever_postings.json"), "Acme")
     assert [j.ats_job_id for j in jobs] == [

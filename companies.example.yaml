@@ -5,7 +5,7 @@
 #
 # token = the board name in the ATS URL:
 #   greenhouse: boards.greenhouse.io/<token>   (API: boards-api.greenhouse.io/v1/boards/<token>)
-#   lever:      jobs.lever.co/<token>
+#   lever:      jobs.lever.co/<token>   (EU-hosted board: add  region: eu  to the entry)
 #   ashby:      jobs.ashbyhq.com/<token>
 
 # Switch a whole source off here if its terms change or it misbehaves.

@@ -24,12 +24,12 @@ on disk per calendar day so the same endpoint is not requested twice on one day.
 
 ## Lever
 
-- Endpoint: `GET https://api.lever.co/v0/postings/{site}?mode=json`
+- Endpoint: `GET https://api.lever.co/v0/postings/{site}?mode=json`; for EU-hosted sites `GET https://api.eu.lever.co/v0/postings/{site}?mode=json` (companies file: `region: eu`).
 - Docs: <https://github.com/lever/postings-api>
 - Checked by hand: `spotify`, `palantir` (HTTP 200); `plaid` and `netflix` returned HTTP 404 (they do not use a public Lever board under that name, which is why the adapter treats 404 as "board not found" and does not retry).
 - **Docs vs. live:** `createdAt` (epoch milliseconds) is not in the documented field table but is present in live answers; it is used for the posting date and the date is optional.
 - Pagination: the docs describe `skip` and `limit` but state no default. Checked live: with no `limit`, the full list is returned (Palantir: 305 postings; asking for `skip=305` returned 0). The adapter therefore makes one request per company.
-- EU-hosted sites use `api.eu.lever.co` per the docs; this is not supported yet.
+- **EU host:** the docs list a second base URL for the EU instance, `https://api.eu.lever.co/v0/postings/` (read on 2026-11-25), with the same path and parameters. The adapter supports it through `region: eu` on a Lever company in `companies.yaml`. **This is covered by fixture tests only: no request was ever sent to `api.eu.lever.co`, and it has not been tried with a real EU-hosted site.** The docs do not say how to tell which instance a company is on, so you have to know it. The response shape is assumed to be the same as the global one.
 - Rate limit: the docs only state a limit for application POSTs, not for the list endpoint.
 
 ## Ashby

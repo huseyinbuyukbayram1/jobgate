@@ -39,7 +39,8 @@ def fetch_all(
     seen: set[str] = set()
     for company in config.active_companies():
         try:
-            jobs = adapters[company.ats].fetch(client, company.name, company.token)
+            extra = {"region": company.region} if company.region != "global" else {}
+            jobs = adapters[company.ats].fetch(client, company.name, company.token, **extra)
         except FetchError as exc:
             kind, message = exc.kind, str(exc)
         except Exception as exc:  # noqa: BLE001 - one broken board must not end the run
