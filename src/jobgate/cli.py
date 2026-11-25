@@ -12,6 +12,7 @@ from typing import Annotated, NoReturn
 
 import typer
 
+from jobgate import __version__
 from jobgate.companies import ConfigError, load_companies
 from jobgate.fetch import fetch_all
 from jobgate.filters import Decision, Verdict, evaluate
@@ -65,9 +66,24 @@ def fail(message: str, code: int = 2) -> NoReturn:
     raise typer.Exit(code)
 
 
+def _version_callback(value: bool) -> None:
+    if value:
+        typer.echo(f"jobgate {__version__}")
+        raise typer.Exit()
+
+
 @app.callback()
 def main(
     ctx: typer.Context,
+    version: Annotated[
+        bool,
+        typer.Option(
+            "--version",
+            callback=_version_callback,
+            is_eager=True,
+            help="Show the version and exit.",
+        ),
+    ] = False,
     db: Annotated[Path, typer.Option(help="SQLite database file.", envvar="JOBGATE_DB")] = Path(
         "jobgate.db"
     ),

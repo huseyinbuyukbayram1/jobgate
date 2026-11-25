@@ -32,6 +32,7 @@ git clone https://github.com/huseyinbuyukbayram1/jobgate.git
 cd jobgate
 python3 -m venv .venv && source .venv/bin/activate    # macOS / Linux
 pip install -e .                             # about 10 seconds
+jobgate --version                            # prints the installed version
 
 cp profile.example.yaml profile.yaml         # then edit it: see "Your profile" below
 cp companies.example.yaml companies.yaml     # 10 public company boards to start with

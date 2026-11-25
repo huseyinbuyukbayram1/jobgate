@@ -467,3 +467,24 @@ def test_check_with_a_missing_profile_is_a_clear_error(env):
     (tmp / "profile.yaml").unlink()
     result = runner.invoke(cli.app, [*base, "check"], input="Build APIs.\n")
     assert result.exit_code == 2 and "profile" in plain(result.output)
+
+
+# -- jobgate --version -------------------------------------------------------------------
+
+
+def test_version_option_prints_the_package_version_and_exits():
+    import jobgate
+
+    result = runner.invoke(cli.app, ["--version"])
+    assert result.exit_code == 0
+    assert plain(result.output).strip() == f"jobgate {jobgate.__version__}"
+
+
+def test_version_needs_no_profile_or_database(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)  # an empty folder: no profile.yaml, no companies.yaml
+    result = runner.invoke(cli.app, ["--version"])
+    assert result.exit_code == 0 and list(tmp_path.iterdir()) == []
+
+
+def test_version_is_listed_in_the_help():
+    assert "--version" in plain(runner.invoke(cli.app, ["--help"]).output)
