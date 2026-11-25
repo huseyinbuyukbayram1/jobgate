@@ -1,8 +1,9 @@
-"""Command line interface: fetch | filter | score | report | mark | run | companies validate."""
+"""Command line interface: fetch | filter | score | report | mark | run | check | companies."""
 
 from __future__ import annotations
 
 import logging
+import sys
 from collections import Counter
 from dataclasses import dataclass
 from datetime import date
@@ -13,10 +14,11 @@ import typer
 
 from jobgate.companies import ConfigError, load_companies
 from jobgate.fetch import fetch_all
-from jobgate.filters import evaluate
+from jobgate.filters import Decision, Verdict, evaluate
 from jobgate.http import HttpClient
 from jobgate.llm import LlmConfigError, load_llm_config, write_rationales
 from jobgate.llm import make_client as build_llm_client
+from jobgate.models import Job
 from jobgate.profile import ProfileError, load_profile
 from jobgate.report import build_csv, build_markdown, is_low_role
 from jobgate.scoring import ScoringError, load_weights, score_job
@@ -317,6 +319,76 @@ def run(
         raise typer.Exit(1)
     step_explain(opts)
     step_report(opts, min_score, limit, include_rejected=False)
+
+
+@app.command()
+def check(
+    ctx: typer.Context,
+    file: Annotated[
+        Path | None,
+        typer.Argument(help="Text file with one posting. Leave out, or use -, to read stdin."),
+    ] = None,
+    title: Annotated[
+        str, typer.Option(help="Job title, used by the seniority rule.")
+    ] = "(pasted posting)",
+    location: Annotated[
+        str,
+        typer.Option(help="Location line of the posting. Without it the location rule is skipped."),
+    ] = "",
+) -> None:
+    """Check one pasted posting against your profile with the same filter rules.
+
+    Prints the verdict (pass, check or reject) and, for every rule that fired, the reason code
+    and the sentence behind it. Needs no network, no database and no LLM.
+    """
+    opts = _opts(ctx)
+    try:
+        profile = load_profile(opts.profile)
+    except ProfileError as exc:
+        fail(str(exc))
+    text = _read_posting(file)
+    if not text.strip():
+        fail("the posting text is empty; give a file or pipe the text in on stdin.")
+    job = Job(
+        company="pasted",
+        title=title.strip() or "(pasted posting)",
+        location=location.strip(),
+        description=text,
+        url="https://example.com/pasted",
+        ats="greenhouse",
+        ats_job_id="check",
+    )
+    decision = evaluate(job, profile)
+    skipped_location = not location.strip()
+    if skipped_location:  # nothing to judge: an empty location is not a finding
+        reasons = [r for r in decision.reasons if r.code != "LOCATION_UNCLEAR"]
+        decision = _decision_of(reasons)
+    typer.echo(f"Verdict: {decision.verdict.value}")
+    for reason in decision.reasons:
+        typer.echo(f"  - {reason.code} ({reason.verdict.value}): {reason.evidence}")
+    if not decision.reasons:
+        typer.echo("No blocker found.")
+    if skipped_location:
+        typer.echo(
+            "Note: no location was given, so the location rule was skipped (use --location)."
+        )
+
+
+def _read_posting(file: Path | None) -> str:
+    if file is None or str(file) == "-":
+        if sys.stdin.isatty():
+            fail("no posting given; pass a file or pipe the text in (pbpaste | jobgate check).")
+        return sys.stdin.read()
+    try:
+        return file.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        fail(f"cannot read {file}: {exc}")
+
+
+def _decision_of(reasons: list) -> Decision:
+    if any(r.verdict is Verdict.REJECT for r in reasons):
+        return Decision(Verdict.REJECT, reasons)
+    return Decision(Verdict.CHECK if reasons else Verdict.PASS, reasons)
 
 
 @companies_app.command("validate")

@@ -199,7 +199,7 @@ def test_help_texts_are_in_english_and_list_every_command():
     result = runner.invoke(cli.app, ["--help"])
     output = plain(result.output)
     assert result.exit_code == 0
-    for word in ("fetch", "filter", "score", "report", "mark", "run", "companies"):
+    for word in ("fetch", "filter", "score", "report", "mark", "run", "check", "companies"):
         assert word in output
     assert "never applies" in output.lower()
 
@@ -356,3 +356,114 @@ def test_a_low_role_posting_is_listed_apart_and_two_runs_give_identical_reports(
     assert invoke(base, "run").exit_code == 0
     assert (tmp / "reports" / "report.md").read_text(encoding="utf-8") == report
     assert (tmp / "reports" / "report.csv").read_text(encoding="utf-8") == csv_text
+
+
+# -- jobgate check: one pasted posting, same rules, no network, no database ---------------
+
+VISA_TEXT = "Join our team.\nWe do not offer visa sponsorship for this role.\nBuild APIs.\n"
+
+
+def invoke_check(env, *args, input=None):
+    tmp, base = env
+    return runner.invoke(cli.app, [*base, "check", *args], input=input)
+
+
+def test_check_reads_a_file_and_prints_verdict_reason_code_and_sentence(env):
+    tmp, _ = env
+    posting = tmp / "posting.txt"
+    posting.write_text(VISA_TEXT, encoding="utf-8")
+    result = invoke_check(env, str(posting), "--location", "New York, NY")
+    out = plain(result.output)
+    assert result.exit_code == 0, out
+    assert "Verdict: reject" in out
+    assert "VISA_NO_SPONSORSHIP (reject): We do not offer visa sponsorship for this role." in out
+
+
+def test_check_reads_stdin_when_no_file_is_given_or_for_a_dash(env):
+    for args in ([], ["-"]):
+        result = invoke_check(env, *args, "--location", "New York, NY", input=VISA_TEXT)
+        assert "VISA_NO_SPONSORSHIP" in plain(result.output), args
+
+
+def test_check_says_pass_when_no_rule_fires(env):
+    result = invoke_check(
+        env, "--location", "Berlin, Germany", input="Build web services with Python.\n"
+    )
+    out = plain(result.output)
+    assert result.exit_code == 0
+    assert "Verdict: pass" in out and "No blocker found." in out
+
+
+def test_check_uses_the_title_for_the_seniority_rule(env):
+    result = invoke_check(
+        env, "--title", "Senior Backend Engineer", "--location", "Berlin", input="Build APIs.\n"
+    )
+    out = plain(result.output)
+    assert "Verdict: reject" in out
+    assert "SENIORITY_IN_TITLE (reject): Senior Backend Engineer" in out
+
+
+def test_check_without_a_location_does_not_flag_the_missing_location(env):
+    result = invoke_check(env, input="Build web services with Python.\n")
+    out = plain(result.output)
+    assert "LOCATION_UNCLEAR" not in out and "Verdict: pass" in out
+    assert "--location" in out  # tells how to include the location rule
+
+
+def test_check_still_reports_a_blocker_when_the_location_is_missing(env):
+    result = invoke_check(env, input=VISA_TEXT + "Candidates graduating in 2030.\n")
+    out = plain(result.output)
+    assert "GRADUATION_YEAR_MISMATCH" in out and "LOCATION_UNCLEAR" not in out
+
+
+def test_check_lists_check_reasons_with_their_verdict(env):
+    result = invoke_check(
+        env, "--location", "Berlin", input="We sponsor visas. We do not offer sponsorship.\n"
+    )
+    out = plain(result.output)
+    assert "Verdict: check" in out and "SPONSORSHIP_CONFLICT (check):" in out
+
+
+def test_check_needs_some_text_and_a_readable_file(env):
+    tmp, _ = env
+    empty = invoke_check(env, input="   \n")
+    assert empty.exit_code == 2 and "error:" in plain(empty.output)
+    missing = invoke_check(env, str(tmp / "nope.txt"))
+    assert missing.exit_code == 2 and "error:" in plain(missing.output)
+
+
+def test_check_uses_no_network_no_llm_and_creates_no_database(env, monkeypatch):
+    tmp, _ = env
+
+    def boom(*args, **kwargs):
+        raise AssertionError("check must not touch the network or an LLM")
+
+    monkeypatch.setattr(cli, "make_client", boom)
+    monkeypatch.setattr(cli, "make_llm_client", boom)
+    result = invoke_check(env, "--location", "Berlin", input=VISA_TEXT)
+    assert result.exit_code == 0
+    assert not (tmp / "jobs.db").exists()
+
+
+def test_check_gives_the_same_decision_as_the_filter_step(env):
+    from jobgate.filters import evaluate
+    from jobgate.models import Job
+    from jobgate.profile import load_profile
+
+    text = VISA_TEXT + "5+ years of experience required.\n"
+    job = Job(
+        company="pasted", title="(pasted posting)", location="New York, NY", description=text,
+        url="https://example.com/pasted", ats="greenhouse", ats_job_id="check",
+    )  # fmt: skip
+    expected = evaluate(job, load_profile(env[0] / "profile.yaml"))
+    result = invoke_check(env, "--location", "New York, NY", input=text)
+    out = plain(result.output)
+    assert f"Verdict: {expected.verdict.value}" in out
+    assert all(code in out for code in expected.codes)
+
+
+def test_check_with_a_missing_profile_is_a_clear_error(env):
+    tmp, base = env
+    (tmp / "profile.yaml").unlink()
+    result = runner.invoke(cli.app, [*base, "check"], input="Build APIs.\n")
+    assert result.exit_code == 2 and "profile" in plain(result.output)

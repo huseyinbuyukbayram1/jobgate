@@ -103,6 +103,10 @@ same database always gives the same bytes. Postings you marked `dropped` are hid
 **CLI (`cli.py`, typer).** Global options go before the command (`jobgate --db my.db run`).
 `run` = `fetch` → `filter` → `score` → `report`; every step is a function shared with its own
 command. Errors are printed as `error: ...` with exit code 2 (bad input) or 1 (nothing fetched).
+`check` is the exception: it is not a pipeline step. It builds one `Job` from pasted text, calls
+`filters.evaluate` with the profile and prints the decision; it never opens the database, an HTTP
+client or an LLM client (a test makes those raise). With no `--location` it drops the
+`LOCATION_UNCLEAR` reason, because an empty location is not a finding about the posting.
 
 ## Optional LLM layer (Phase 4): `llm.py`
 

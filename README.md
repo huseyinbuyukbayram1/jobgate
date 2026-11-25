@@ -58,6 +58,26 @@ jobgate mark 6c501ff2 dropped --note "needs on-site"
 Running any command twice never creates duplicates, and the second `jobgate run` re-uses
 the day's fetch cache instead of hitting the job boards again.
 
+### Check one posting you found elsewhere
+
+Paste a posting into `jobgate check` (from a file or on stdin) to see what the filter rules say
+about it. It uses your `profile.yaml`, needs no network, no database and no LLM, and does not
+score or store anything:
+
+```bash
+pbpaste | jobgate check --title "Backend Engineer" --location "Dublin, Ireland"
+jobgate check posting.txt --location "Berlin, Germany"
+```
+
+```text
+Verdict: reject
+  - VISA_NO_SPONSORSHIP (reject): We are unable to sponsor visas.
+  - LOCATION_OUTSIDE_PROFILE (reject): New York, NY
+```
+
+`--title` feeds the seniority rule and `--location` the location rule; without `--location` that
+rule is skipped and the output says so. Global options such as `--profile` go before the command.
+
 ### Your profile
 
 `profile.yaml` (git-ignored; start from the fictional `profile.example.yaml`) says where you may
