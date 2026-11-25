@@ -1,6 +1,12 @@
 # Issue draft: student / graduation-year rule
 
-**Status:** draft only, nothing implemented. Not part of the current filter.
+**Status:** implemented in `[Unreleased]` in a reduced form (see `CHANGELOG.md`). What was built
+differs from the draft below: the profile has two flat optional fields, `student_status`
+(`graduated` | `enrolled`) and `graduation_year`, not an `education:` block; there is no month
+field; the reject code for a wrong year is `GRADUATION_YEAR_MISMATCH`; ambiguous or conflicting
+wording uses `GRADUATION_AMBIGUOUS` (check). Not built: `GRADUATION_WINDOW_UNCLEAR` ("within N
+months of graduation"), month-level ranges, and season wording ("Summer 2027") implying a year.
+The text below is the original draft, kept for the reasoning.
 
 ## Problem
 

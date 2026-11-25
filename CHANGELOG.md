@@ -8,8 +8,14 @@ All notable changes are listed here. The format follows
 ### Added
 - Filter rule `SENIORITY_IN_TITLE`: a title with Senior, Sr., Staff Engineer, Principal, Director, VP or Head of is rejected; Lead, Architect or Manager only need a check. Matching is by whole word, on the title only.
 
+- Two optional profile fields, `student_status` (`graduated` | `enrolled`) and `graduation_year`.
+  Profiles without them behave exactly as before.
+- Filter rule `STUDENT_STATUS_REQUIRED`: with `student_status: graduated`, a posting that requires current enrollment ("currently pursuing a degree", "must be a student", "returning to school") is rejected. Wording that also welcomes graduates ("or recent graduates", "or equivalent experience") is not.
+- Filter rule `GRADUATION_YEAR_MISMATCH`: with `graduation_year` set, a posting that asks for another graduation year ("graduating in 2027", "class of 2028", a range) is rejected; a range or "or later" that includes your year passes. Soft or conflicting wording gives `GRADUATION_AMBIGUOUS` (check).
+
 ### Changed
 - Senior-role limitation in the README rewritten for the new rule.
+- The student / graduation-year limitation in the README now describes the new rules; `profile.example.yaml` sets both fields for its fictional graduate.
 
 ## [0.1.0] - 2026-11-25
 

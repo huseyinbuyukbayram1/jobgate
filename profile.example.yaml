@@ -17,6 +17,14 @@ security_clearance: false
 # Reject postings whose required experience (lower bound) is above this many years.
 max_experience_years: 2
 
+# Optional. Without these two lines the student-status and graduation-year rules are off.
+# student_status: graduated | enrolled. "graduated" rejects postings that require current
+#   enrollment ("currently pursuing a degree", "must be a student").
+# graduation_year: the year you finished or will finish your degree. A posting that asks for
+#   another graduation year ("class of 2027", "graduating between 2027 and 2028") is rejected.
+student_status: graduated
+graduation_year: 2026
+
 # Languages you can work in (lowercase English names). A posting that requires another
 # language is rejected unless it only lists it as a plus.
 languages: [english, german]

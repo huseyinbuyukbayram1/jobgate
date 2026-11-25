@@ -276,6 +276,150 @@ def rule_seniority(job: Job, profile: Profile) -> list[Reason]:
     return []
 
 
+# -- student status and graduation year ------------------------------------------------
+
+# Both rules are opt-in: they run only when the profile sets ``student_status`` /
+# ``graduation_year``. They read the title and the description sentence by sentence.
+
+_STUDENT_REQUIRED = [
+    re.compile(
+        r"\bcurrently\s+(?:enrolled|pursuing|attending|studying|completing|working toward)\b"
+    ),
+    re.compile(
+        r"\bmust\s+(?:be|remain)\s+(?:an?\s+)?"
+        r"(?:(?:current|full[- ]time|enrolled|undergraduate|graduate|university|college)\s+)*"
+        r"student\b"
+    ),
+    re.compile(
+        r"\b(?:you(?:'ll| will)? (?:be|are)|must be|will be)\s+(?:currently\s+)?"
+        r"return(?:ing)?\s+to\s+(?:school|university|college|campus|your studies)\b"
+    ),
+    re.compile(
+        r"\benrolled\s+(?:full[- ]time\s+|part[- ]time\s+)?(?:in|at)\s+(?:an?|your)\s+"
+        r"[^.]{0,60}?\b(?:degree|university|college|bachelor|master|ph\.?d|doctoral|"
+        r"undergraduate|accredited|school)\b"
+    ),
+    re.compile(
+        r"\bpursuing\s+(?:an?\s+)?(?:[\w'’/-]+\s+){0,4}?"
+        r"(?:degree|bachelor|master|ph\.?d|doctorate)\b"
+    ),
+]
+# Post-hire or benefit wording that looks similar: tuition support, plans, "you will be enrolled".
+_STUDENT_NOT_REQUIRED = re.compile(
+    r"\b(?:tuition|reimburs\w*|employees|team members|colleagues|mentor\w*|scholarship|"
+    r"benefits?|insurance|401|pension|retirement|wellness)\b|(?:will|would|'ll)\s+(?:be\s+)?enrolled"
+)
+# Wording that welcomes people who already graduated.
+_GRADUATES_WELCOME = re.compile(
+    r"\b(?:recent|new)\s+graduates?\b|\brecently\s+graduated\b|\bnew\s*grads?\b|\balumni\b|"
+    r"\bor\s+(?:have\s+|having\s+)?(?:recently\s+)?"
+    r"(?:graduated|completed|received|obtained|earned|finished)\b|\bor\s+graduates?\b|"
+    r"\bor\s+(?:have\s+)?equivalent\s+(?:practical\s+)?experience\b|"
+    r"\bgraduates?\s+(?:are\s+)?(?:also\s+)?welcome\b"
+)
+_MONTH = (
+    r"(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|"
+    r"sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?"
+)
+_DATE = rf"(?:{_MONTH}\s+(?:\d{{1,2}}\s+)?)?(20\d\d)\b"
+_YEAR_FILLER = (
+    r"in|by|before|after|between|from|during|on|of|at|the|end|early|late|mid|spring|summer|"
+    r"fall|autumn|winter|date|year|is|expected|no|later|than|within|until|through"
+)
+_GRADUATION_YEAR = re.compile(
+    rf"\b(?:graduat(?:e|es|ed|ing|ion)|class of)((?:\s+(?:{_YEAR_FILLER}))*)\s+{_DATE}"
+    rf"(?:(\s*(?:-|–|—|to|and|or|through)\s*){_DATE})?"
+    r"(\s+(?:or|and)\s+(?:later|after|beyond|earlier|before))?"
+)
+_UPPER_WORDS = re.compile(r"\b(?:by|before|until|no later than)\b")
+
+
+def _clean(sentence: str) -> str:
+    return re.sub(r"[:()\[\],;]", " ", sentence.lower())
+
+
+def _title_and_sentences(job: Job) -> list[str]:
+    return [job.title, *sentences(job.description)]
+
+
+def _is_student_requirement(lower: str) -> bool:
+    return any(p.search(lower) for p in _STUDENT_REQUIRED) and not _STUDENT_NOT_REQUIRED.search(
+        lower
+    )
+
+
+def rule_student_status(job: Job, profile: Profile) -> list[Reason]:
+    if profile.student_status != "graduated":
+        return []
+    required: list[str] = []  # clear requirement, no wording that welcomes graduates
+    welcoming = False  # some sentence welcomes people who already graduated
+    soft: list[str] = []
+    for sentence in _title_and_sentences(job):
+        lower = _clean(sentence)
+        welcome = bool(_GRADUATES_WELCOME.search(lower))
+        welcoming = welcoming or welcome
+        if not _is_student_requirement(lower) or welcome:
+            continue
+        (soft if is_soft(lower) else required).append(sentence)
+    reasons = [Reason("GRADUATION_AMBIGUOUS", Verdict.CHECK, snippet(s)) for s in soft]
+    if required:
+        code, verdict = (
+            ("GRADUATION_AMBIGUOUS", Verdict.CHECK)
+            if welcoming
+            else ("STUDENT_STATUS_REQUIRED", Verdict.REJECT)
+        )
+        reasons += [Reason(code, verdict, snippet(s)) for s in required]
+    return reasons
+
+
+def _covers(lower: str, year: int) -> list[bool]:
+    """For each graduation-year phrase in the sentence: does it include ``year``?"""
+    results: list[bool] = []
+    for match in _GRADUATION_YEAR.finditer(lower):
+        filler, first, joiner, second, suffix = match.groups()
+        first_year = int(first)
+        if second:
+            last_year = int(second)
+            if re.search(r"\bor\b", joiner):
+                results.append(year in (first_year, last_year))
+            else:
+                results.append(min(first_year, last_year) <= year <= max(first_year, last_year))
+        elif suffix:
+            later = re.search(r"later|after|beyond", suffix)
+            results.append(year >= first_year if later else year <= first_year)
+        elif re.search(r"\bbefore\b", filler):
+            results.append(year < first_year)
+        elif re.search(r"\bafter\b", filler):
+            results.append(year > first_year)
+        elif _UPPER_WORDS.search(filler):
+            results.append(year <= first_year)
+        else:
+            results.append(year == first_year)
+    return results
+
+
+def rule_graduation_year(job: Job, profile: Profile) -> list[Reason]:
+    year = profile.graduation_year
+    if year is None:
+        return []
+    fits: list[str] = []
+    misses: list[str] = []
+    for sentence in _title_and_sentences(job):
+        verdicts = _covers(_clean(sentence), year)
+        if not verdicts:
+            continue
+        (fits if all(verdicts) else misses).append(sentence)
+    reasons: list[Reason] = []
+    for sentence in misses:
+        lower = _clean(sentence)
+        unsure = is_soft(lower) or bool(_GRADUATES_WELCOME.search(lower)) or bool(fits)
+        if unsure:
+            reasons.append(Reason("GRADUATION_AMBIGUOUS", Verdict.CHECK, snippet(sentence)))
+        else:
+            reasons.append(Reason("GRADUATION_YEAR_MISMATCH", Verdict.REJECT, snippet(sentence)))
+    return reasons
+
+
 # -- location ---------------------------------------------------------------------------
 
 _LOCATION_FILLER = re.compile(
@@ -389,6 +533,8 @@ RULES: list[Callable[[Job, Profile], list[Reason]]] = [
     rule_video_and_assignment,
     rule_experience,
     rule_seniority,
+    rule_student_status,
+    rule_graduation_year,
     rule_location,
     rule_timezone,
     rule_language,

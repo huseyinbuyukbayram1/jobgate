@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 
 BlockerMode = Literal["reject", "ignore"]
 WorkMode = Literal["remote", "hybrid", "onsite"]
+StudentStatus = Literal["graduated", "enrolled"]
 
 
 class ProfileError(Exception):
@@ -68,8 +69,16 @@ class Profile(_Strict):
     timezones: Timezones = Field(default_factory=Timezones)
     blockers: Blockers = Field(default_factory=Blockers)
     preferences: Preferences = Field(default_factory=Preferences)
+    # Optional. Without them the student-status and graduation-year rules do nothing.
+    graduation_year: int | None = Field(default=None, ge=1990, le=2100)
+    student_status: StudentStatus | None = None
 
     _norm = field_validator("citizenships", "languages")(_lower)
+
+    @field_validator("student_status", mode="before")
+    @classmethod
+    def _status_case(cls, value: object) -> object:
+        return value.strip().lower() if isinstance(value, str) else value
 
 
 def load_profile(path: Path | str) -> Profile:

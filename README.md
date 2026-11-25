@@ -72,6 +72,8 @@ citizenships: [german, eu]
 security_clearance: false
 max_experience_years: 2                 # reject postings that ask for more
 languages: [english, german]
+student_status: graduated               # optional: graduated | enrolled
+graduation_year: 2026                   # optional: reject postings that ask for another year
 locations:
   allowed: [germany, berlin, ireland, dublin, europe, eu]
 blockers:
@@ -92,12 +94,12 @@ A real run with the example profile and the 10 example companies (public posting
 ```text
 $ jobgate run
 Fetched 2277 postings from 10 of 10 companies (2277 new, 0 no longer listed).
-Filtered 2277 postings: 24 pass, 130 check, 2123 reject.
-Scored 154 postings.
+Filtered 2277 postings: 23 pass, 122 check, 2132 reject.
+Scored 145 postings.
 Wrote reports/report.md and reports/report.csv.
-  53: role 15, technology 10, level 20, location 8  Software Engineering Intern @ Datadog
   28: level 10, location 8, compensation 10  Business Development Representative, DACH @ Notion
   28: level 10, location 8, compensation 10  Business Development Representative, UKI @ Notion
+  28: level 10, location 8, compensation 10  Solutions Consultant, Commercial, DACH @ Notion
 ```
 
 `reports/report.md` has three sections: **Ranked matches**, **Needs a check** (each with the
@@ -136,6 +138,11 @@ A rejected or "check" posting always carries a reason code and the sentence that
 for example `VISA_NO_SPONSORSHIP`, `CITIZENSHIP_REQUIRED`, `CLEARANCE_REQUIRED`,
 `VIDEO_REQUIRED`, `EXPERIENCE_TOO_HIGH`, `LANGUAGE_NOT_IN_PROFILE`, `LOCATION_OUTSIDE_PROFILE`,
 `SPONSORSHIP_CONFLICT` (one sentence says "we sponsor", another says "no sponsorship"),
+`STUDENT_STATUS_REQUIRED` (you set `student_status: graduated` and the posting says "currently
+enrolled", "currently pursuing a degree" or "must be a student"),
+`GRADUATION_YEAR_MISMATCH` (you set `graduation_year` and the posting asks for another year, such
+as "graduating in 2027" or "class of 2028"; a range or "or later" that includes your year passes),
+`GRADUATION_AMBIGUOUS` (soft or conflicting wording about either: only a check),
 `SENIORITY_IN_TITLE` (the title says Senior, Sr., Staff Engineer, Principal, Director, VP or Head of:
 reject; Lead, Architect or Manager: only check, because "Lead Generation Intern" exists).
 When the text is ambiguous the rule prefers **check** over a wrong **reject**.
@@ -187,6 +194,9 @@ set `human_verified=true` on its row.
 | `labeled_postings.csv` (development) | 40 | 0 / 40 |
 | `heldout_postings.csv` (held-out) | 28 | 0 / 28 |
 
+A separate, small spot check of rejections by the student-status and graduation-year rules is
+in [docs/spot_checks.md](docs/spot_checks.md); it is not an accuracy claim.
+
 No independent verification has been done, so **this project makes no accuracy claim**. The
 evaluation tool can be run any time, and it starts its report with the verified-over-total
 count:
@@ -207,10 +217,13 @@ numbers in `docs/*_report.md` are labelled preliminary and should not be quoted.
   been confirmed by a human. Until they are, no accuracy figure is published. Treat the output as a time-saver
   for reading, not as a guarantee: a posting the filter rejects may have been fine, and one it
   passes may still hide a blocker. The `check` list exists because of that.
-- **Student status and graduation year are not checked.** Many internship and new-grad postings
-  require being currently enrolled or graduating in a given year; the filter does not look for
-  that, so such postings can pass. See the
-  [draft issue](docs/issue_drafts/graduation-year-rule.md).
+- **Student status and graduation year are checked only if your profile sets them**
+  (`student_status`, `graduation_year`). Without them the two rules do nothing and such postings
+  can pass. With them, matching is by phrase: wording such as "Summer 2027 internship" (a season
+  and year, without the word graduate) is not read as a graduation year, months inside a year
+  range are ignored, and "graduating soon" with no year is not flagged. Postings that welcome
+  both students and recent graduates are not rejected. See the
+  [design notes](docs/issue_drafts/graduation-year-rule.md).
 - English-language postings only; rules are sentence-level regular expressions.
 - Scoring is keyword-based. A title like "Technical Support Engineer" earns partial role points
   because it contains "engineer". It is a ranking aid, not a judgement of fit.
@@ -233,8 +246,8 @@ numbers in `docs/*_report.md` are labelled preliminary and should not be quoted.
 
 - Confirm the evaluation labels by hand and publish the measured accuracy with the
   false-rejection rate next to it.
-- A student / graduation-year rule (draft:
-  [docs/issue_drafts/graduation-year-rule.md](docs/issue_drafts/graduation-year-rule.md)).
+- Month-level graduation windows and season wording ("Summer 2027") for the graduation-year rule
+  (see [docs/issue_drafts/graduation-year-rule.md](docs/issue_drafts/graduation-year-rule.md)).
 - Better role matching in the score (titles, not just keywords).
 - Recognise more video-requirement wordings and use city names found in the text when the
   location field is vague.

@@ -69,3 +69,31 @@ def test_profile_can_be_built_in_code():
         {"work_authorization": {"regions": ["x"]}, "locations": {"allowed": ["x"]}}
     )
     assert profile.max_experience_years == 2
+
+
+# -- optional education fields (student status and graduation year) --------------------
+
+
+def test_education_fields_are_optional_and_default_to_none(tmp_path):
+    profile = load_profile(write(tmp_path, MINIMAL))
+    assert profile.graduation_year is None
+    assert profile.student_status is None
+
+
+def test_education_fields_are_read(tmp_path):
+    profile = load_profile(
+        write(tmp_path, MINIMAL + "graduation_year: 2026\nstudent_status: Graduated\n")
+    )
+    assert profile.graduation_year == 2026
+    assert profile.student_status == "graduated"
+
+
+def test_student_status_must_be_graduated_or_enrolled(tmp_path):
+    with pytest.raises(ProfileError, match="student_status"):
+        load_profile(write(tmp_path, MINIMAL + "student_status: dropout\n"))
+
+
+@pytest.mark.parametrize("year", ["1899", "3000", "soon"])
+def test_graduation_year_must_be_a_plausible_year(tmp_path, year):
+    with pytest.raises(ProfileError, match="graduation_year"):
+        load_profile(write(tmp_path, MINIMAL + f"graduation_year: {year}\n"))

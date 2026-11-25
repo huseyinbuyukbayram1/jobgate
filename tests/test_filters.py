@@ -477,3 +477,219 @@ def test_seniority_reject_is_reported_once_even_with_ambiguous_words_too():
 def test_seniority_looks_at_the_title_only_not_the_description():
     decision = run_title("Software Engineer", "You will work with senior staff and a tech lead.")
     assert "SENIORITY_IN_TITLE" not in codes(decision)
+
+
+# -- student status (profile.student_status) ---------------------------------------------
+
+
+def grad_profile(**extra):
+    return make_profile(student_status="graduated", **extra)
+
+
+def run_text(text, profile, title="Software Engineer"):
+    return evaluate(make_job(text, title=title), profile)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "You are currently enrolled in a Bachelor's or Master's program.",
+        "Candidates must be currently pursuing a degree in computer science.",
+        "Currently pursuing a BS, MS or PhD in a technical field.",
+        "You must be a student at an accredited university.",
+        "Applicants must be a current undergraduate student.",
+        "You will be returning to school after the internship.",
+        "Must be returning to university in the fall.",
+        "You are enrolled in a degree program at a university.",
+        "Enrolled in an accredited university or college program.",
+        "Pursuing a Bachelor's degree in Computer Science.",
+    ],
+)
+def test_current_enrollment_requirements_reject_a_graduated_profile(text):
+    decision = run_text(text, grad_profile())
+    assert decision.verdict is Verdict.REJECT
+    reason = next(r for r in decision.reasons if r.code == "STUDENT_STATUS_REQUIRED")
+    assert reason.verdict is Verdict.REJECT
+    assert reason.evidence == text
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "You are currently enrolled in a Bachelor's or Master's program.",
+        "Currently pursuing a BS, MS or PhD in a technical field.",
+        "You must be a student at an accredited university.",
+    ],
+)
+def test_enrollment_requirement_does_not_affect_other_profiles(text):
+    for profile in (make_profile(), make_profile(student_status="enrolled")):
+        assert "STUDENT_STATUS_REQUIRED" not in codes(run_text(text, profile))
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "We mentor students and run a campus ambassador programme.",
+        "Our team has supported student loan refinancing for customers.",
+        "We partner with student organisations across Europe.",
+        "Graduate Software Engineer: join our two-year rotation.",
+        "Recent graduates are welcome to apply.",
+        "We hire graduates every year and train them on the job.",
+        "Employees enrolled in our health plan get free dental care.",
+        "Enrolled in the 401k program from day one.",
+        "We support employees pursuing a degree with tuition reimbursement.",
+        "You will work with students who are returning to school as users of our product.",
+        "Students or recent graduates are encouraged to apply.",
+        "Open to currently enrolled students or recent graduates.",
+        "Pursuing or received a degree in Engineering, Mathematics or Physics.",
+        "Currently pursuing or recently completed a Bachelor's or Master's in Computer Science.",
+        "Pursuing a degree in Computer Science, or have equivalent practical experience.",
+        "Pursuing or having completed a degree in a related field.",
+    ],
+)
+def test_sentences_that_are_not_an_enrollment_requirement_are_not_flagged(text):
+    decision = run_text(text, grad_profile())
+    assert "STUDENT_STATUS_REQUIRED" not in codes(decision)
+    assert decision.verdict is Verdict.PASS
+
+
+def test_enrollment_requirement_next_to_a_graduates_welcome_sentence_is_only_a_check():
+    text = "You are currently pursuing a degree. Recent graduates are welcome too."
+    decision = run_text(text, grad_profile())
+    assert decision.verdict is Verdict.CHECK
+    assert codes(decision) == {"GRADUATION_AMBIGUOUS"}
+
+
+def test_soft_enrollment_wording_is_only_a_check():
+    decision = run_text("Currently pursuing a degree is preferred.", grad_profile())
+    assert decision.verdict is Verdict.CHECK
+    assert codes(decision) == {"GRADUATION_AMBIGUOUS"}
+
+
+# -- graduation year (profile.graduation_year) -------------------------------------------
+
+
+def year_profile(year=2026, **extra):
+    return make_profile(graduation_year=year, **extra)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Candidates graduating in 2027.",
+        "You are graduating in December 2027.",
+        "Open to the class of 2027.",
+        "For graduates of 2027 only.",
+        "Expected graduation date: June 2027.",
+        "You will graduate between 2027 and 2028.",
+        "Graduating between December 2027 and June 2028.",
+        "Students graduating 2027 - 2028 are eligible.",
+        "You are graduating by 2025.",
+        "You will have graduated before 2026.",
+        "Graduating in 2027 or later.",
+        "Graduating in 2025 or earlier.",
+        "Graduating in 2027 or 2028.",
+        "Graduating after 2026.",
+    ],
+)
+def test_graduation_year_outside_the_profile_year_is_rejected(text):
+    decision = run_text(text, year_profile())
+    assert decision.verdict is Verdict.REJECT
+    reason = next(r for r in decision.reasons if r.code == "GRADUATION_YEAR_MISMATCH")
+    assert reason.verdict is Verdict.REJECT
+    assert reason.evidence == text
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Candidates graduating in 2026.",
+        "Open to the class of 2026.",
+        "For graduates of 2026.",
+        "Graduating between 2025 and 2027.",
+        "Graduating between December 2025 and June 2027.",
+        "Graduating 2026 - 2027.",
+        "Graduating in 2026 or 2027.",
+        "Graduating by 2027.",
+        "Graduating no later than 2026.",
+        "You will graduate before 2027.",
+        "Graduating in 2026 or later.",
+        "Graduating in 2027 or earlier.",
+        "Graduating after 2025.",
+    ],
+)
+def test_graduation_year_that_covers_the_profile_year_is_not_flagged(text):
+    decision = run_text(text, year_profile())
+    assert decision.verdict is Verdict.PASS
+    assert decision.reasons == []
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Graduate Software Engineer",
+        "Join our graduate programme and grow with us.",
+        "Our graduate programme has run since 2019.",
+        "We were founded in 2015 and hire graduates every year.",
+        "Recent graduates welcome.",
+        "You graduated within the last 12 months.",
+        "Graduating soon? Apply now.",
+        "We have a class of interns each summer and ship in 2027.",
+        "Summer 2027 internship in our Berlin office.",
+        "Join us in 2027 as we grow.",
+    ],
+)
+def test_text_without_a_graduation_year_requirement_is_not_flagged(text):
+    decision = run_text(text, year_profile())
+    assert decision.verdict is Verdict.PASS
+    assert decision.reasons == []
+
+
+def test_year_rule_needs_a_graduation_year_in_the_profile():
+    text = "Candidates graduating in 2027."
+    for profile in (make_profile(), make_profile(student_status="graduated")):
+        assert "GRADUATION_YEAR_MISMATCH" not in codes(run_text(text, profile))
+
+
+def test_year_rule_also_applies_to_an_enrolled_profile():
+    profile = make_profile(graduation_year=2028, student_status="enrolled")
+    assert run_text("Graduating in 2027.", profile).verdict is Verdict.REJECT
+    assert run_text("Graduating in 2028.", profile).verdict is Verdict.PASS
+
+
+def test_graduation_year_in_the_title_counts_too():
+    decision = run_text("", year_profile(), title="Software Engineer (Class of 2027)")
+    assert codes(decision) == {"GRADUATION_YEAR_MISMATCH"}
+    assert decision.reasons[0].evidence == "Software Engineer (Class of 2027)"
+
+
+def test_conflicting_year_sentences_are_only_a_check():
+    text = "Open to graduates of 2026. Candidates graduating in 2027 are preferred."
+    decision = run_text(text, year_profile())
+    assert decision.verdict is Verdict.CHECK
+    assert codes(decision) == {"GRADUATION_AMBIGUOUS"}
+
+
+def test_year_requirement_mixed_with_a_recent_graduates_wording_is_only_a_check():
+    decision = run_text("Students graduating in 2027 or recent graduates.", year_profile())
+    assert decision.verdict is Verdict.CHECK
+    assert codes(decision) == {"GRADUATION_AMBIGUOUS"}
+
+
+def test_soft_year_wording_is_only_a_check():
+    decision = run_text("Graduating in 2027 is a plus.", year_profile())
+    assert decision.verdict is Verdict.CHECK
+    assert codes(decision) == {"GRADUATION_AMBIGUOUS"}
+
+
+def test_both_education_rules_can_fire_on_one_posting():
+    text = "You are currently enrolled in a degree program. Graduating in 2027."
+    decision = run_text(text, grad_profile(graduation_year=2026))
+    assert decision.verdict is Verdict.REJECT
+    assert codes(decision) == {"STUDENT_STATUS_REQUIRED", "GRADUATION_YEAR_MISMATCH"}
+
+
+def test_profiles_without_education_fields_keep_every_verdict():
+    text = "You are currently enrolled in a degree program. Graduating in 2027."
+    decision = run_text(text, make_profile())
+    assert decision.verdict is Verdict.PASS
