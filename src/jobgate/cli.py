@@ -177,7 +177,9 @@ def step_score(opts: Options) -> bool:
         for row in rows:
             if row.verdict in ("pass", "check"):
                 result = score_job(row.job, profile, weights)
-                store.save_score(row.job.key, result.total, result.parts, result.explain())
+                store.save_score(
+                    row.job.key, result.total, result.parts, result.explain(), result.role_match
+                )
                 scored += 1
     typer.echo(f"Scored {scored} postings.")
     return True

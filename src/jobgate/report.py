@@ -23,6 +23,7 @@ from jobgate.storage import JobRow
 CSV_COLUMNS = [
     "rank", "id", "score", "verdict", "company", "title", "location", "url",
     "posted_at", "status", "explanation", "rationale", "reasons", "section", "role_points",
+    "role_match",
 ]  # fmt: skip
 
 
@@ -65,7 +66,8 @@ def _entry(rank: int, row: JobRow, with_reasons: bool, low_role: bool = False) -
     lines = [
         heading,
         f"{_clean(job.company)} · {_clean(job.location) or 'location unknown'} · {posted} · "
-        f"id `{row.short_id}` · status: {row.status}",
+        f"id `{row.short_id}` · status: {row.status}"
+        + (f" · role match: {_clean(row.role_match)}" if row.role_match else ""),
     ]
     if row.rationale:
         lines += ["", f"> {_clean(row.rationale)}"]
@@ -192,6 +194,7 @@ def build_csv(rows: list[JobRow], include_rejected: bool = False) -> str:
                 "reasons": ";".join(r["code"] for r in row.reasons),
                 "section": section,
                 "role_points": row.parts["role"] if "role" in row.parts else "",
+                "role_match": row.role_match or "",
             }
         )
     return out.getvalue()

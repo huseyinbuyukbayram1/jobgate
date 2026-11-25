@@ -67,7 +67,7 @@ add up to the total, so the explanation is exact: `72: role 28, technology 20, l
 
 | Part | Max (default) | How it is computed |
 |------|---------------|--------------------|
-| role | 30 | share of a target-role phrase found in the title (at least half, else 0); an avoided word in the title gives 0 |
+| role | 30 | the title is normalised (case, punctuation, "engineering" -> "engineer", `role_synonyms`) and split into a head and later parts; best tier per target role: whole phrase in the head 1.0, all words in the head 0.9, whole phrase in a later part 0.8, at least half the words in the head up to 0.75, else 0; an avoided word gives 0. The match that counted is stored (`decisions.role_match`) and shown in the report |
 | technology | 30 | profile technologies found in title + description; full points at `technology_saturation` matches (default 3) |
 | level | 20 | senior title 0, junior/new-grad title full, else the years asked vs. the profile limit |
 | location | 10 | 60% place (allowed / unclear / outside) + 40% work mode (remote, hybrid, onsite) |

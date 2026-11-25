@@ -46,7 +46,8 @@ CREATE TABLE IF NOT EXISTS decisions (
     score INTEGER,
     breakdown TEXT,
     explanation TEXT,
-    rationale TEXT
+    rationale TEXT,
+    role_match TEXT
 );
 CREATE TABLE IF NOT EXISTS status_history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -89,6 +90,7 @@ class JobRow:
     parts: dict[str, int] = field(default_factory=dict)
     explanation: str | None = None
     rationale: str | None = None
+    role_match: str | None = None
 
 
 class Storage:
@@ -100,6 +102,8 @@ class Storage:
         columns = {r["name"] for r in self.conn.execute("PRAGMA table_info(decisions)")}
         if "rationale" not in columns:  # database created before the optional LLM layer
             self.conn.execute("ALTER TABLE decisions ADD COLUMN rationale TEXT")
+        if "role_match" not in columns:  # database created before role-match explanations
+            self.conn.execute("ALTER TABLE decisions ADD COLUMN role_match TEXT")
 
     def __enter__(self) -> Storage:
         return self
@@ -181,18 +185,25 @@ class Storage:
             if verdict is Verdict.REJECT:  # rejected postings are never ranked
                 self.conn.execute(
                     "UPDATE decisions SET score=NULL, breakdown=NULL, explanation=NULL, "
-                    "rationale=NULL "
+                    "rationale=NULL, role_match=NULL "
                     "WHERE job_key=?",
                     (job_key,),
                 )
 
-    def save_score(self, job_key: str, total: int, parts: dict[str, int], explanation: str) -> None:
+    def save_score(
+        self,
+        job_key: str,
+        total: int,
+        parts: dict[str, int],
+        explanation: str,
+        role_match: str = "",
+    ) -> None:
         with self.conn:
             cursor = self.conn.execute(
                 "UPDATE decisions SET score=?, breakdown=?, "
                 "rationale=CASE WHEN explanation IS ? THEN rationale ELSE NULL END, "
-                "explanation=? WHERE job_key=?",
-                (total, json.dumps(parts), explanation, explanation, job_key),
+                "explanation=?, role_match=? WHERE job_key=?",
+                (total, json.dumps(parts), explanation, explanation, role_match or None, job_key),
             )
         if cursor.rowcount == 0:
             raise StorageError(f"cannot score {job_key}: run the filter first")
@@ -253,6 +264,7 @@ class Storage:
     def rows(self, include_inactive: bool = False) -> list[JobRow]:
         sql = (
             "SELECT j.*, d.verdict, d.reasons, d.score, d.breakdown, d.explanation, d.rationale, "
+            "d.role_match, "
             "(SELECT status FROM status_history h WHERE h.job_key = j.key "
             " ORDER BY h.id DESC LIMIT 1) AS status "
             "FROM jobs j LEFT JOIN decisions d ON d.job_key = j.key "
@@ -281,6 +293,7 @@ class Storage:
                     parts=json.loads(r["breakdown"]) if r["breakdown"] else {},
                     explanation=r["explanation"],
                     rationale=r["rationale"],
+                    role_match=r["role_match"],
                 )
             )
         return result

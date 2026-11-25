@@ -299,3 +299,19 @@ def test_reports_with_low_role_matches_are_byte_identical_whatever_the_input_ord
     first = builder(rows, *args)
     assert builder(list(reversed(rows)), *args) == first
     assert builder(rows, *args) == first
+
+
+def test_the_role_match_is_shown_in_the_entry_and_the_csv():
+    row = scored_row(1, "Member of Technical Staff - Workers AI")
+    row.role_match = 'phrase "software engineer" via "member of technical staff"'
+    text = build_markdown([row], DAY)
+    assert 'role match: phrase "software engineer" via "member of technical staff"' in text
+    record = list(csv.DictReader(io.StringIO(build_csv([row]))))[0]
+    assert record["role_match"] == row.role_match
+
+
+def test_entries_without_a_role_match_have_no_role_match_text():
+    row = scored_row(1, "Backend Engineer")
+    row.role_match = None
+    assert "role match:" not in build_markdown([row], DAY)
+    assert list(csv.DictReader(io.StringIO(build_csv([row]))))[0]["role_match"] == ""

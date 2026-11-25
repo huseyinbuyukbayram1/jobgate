@@ -9,3 +9,25 @@ weights:
 
 # Full technology points are given once this many of your technologies appear.
 technology_saturation: 3
+
+# Other ways a title can name a role. Each key is a canonical role phrase (normally one of your
+# preferences.target_roles); the listed phrases are rewritten to it before the title is matched.
+# The titles are also normalised: lower case, punctuation removed, "engineering" -> "engineer".
+# How a title is matched against a target role, best first:
+#   the whole phrase in the first part of the title ("Software Engineer, Payments") ... full points
+#   all its words in the first part, in any order ("Software Quality Engineer") ........ 0.9
+#   the whole phrase in a later part ("Platform Lead - Software Engineer") .............. 0.8
+#   at least half of its words in the first part ("Backend Engineer") ................ up to 0.75
+# The report says which match counted. Setting role_synonyms here replaces this list.
+role_synonyms:
+  software engineer:
+    - member of technical staff
+    - software developer
+    - software development engineer
+    - software dev engineer
+    - developer
+    - swe
+    - sde
+  backend engineer: [back end engineer, backend developer, back end developer]
+  frontend engineer: [front end engineer, frontend developer, front end developer]
+  machine learning engineer: [ml engineer, mle, machine learning developer]

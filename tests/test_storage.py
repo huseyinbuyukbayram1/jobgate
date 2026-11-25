@@ -187,3 +187,36 @@ def test_old_databases_get_the_rationale_column(tmp_path):
     Storage(path).close()
     cols = [r[1] for r in sqlite3.connect(path).execute("PRAGMA table_info(decisions)")]
     assert "rationale" in cols
+
+
+def test_role_match_is_stored_with_the_score_and_cleared_for_rejected_postings(tmp_path):
+    from datetime import date
+
+    from jobgate.filters import Reason, Verdict
+
+    job = Job(
+        company="Acme", title="Engineer", location="Berlin", description="d",
+        url="https://example.com/1", ats="greenhouse", ats_job_id="1",
+    )  # fmt: skip
+    with Storage(tmp_path / "s.db") as store:
+        store.upsert_jobs([job], date(2026, 1, 1))
+        store.save_decision(job.key, Verdict.PASS, [])
+        store.save_score(job.key, 70, {"role": 30}, "70: role 30", 'phrase "software engineer"')
+        assert store.rows()[0].role_match == 'phrase "software engineer"'
+        store.save_decision(job.key, Verdict.REJECT, [Reason("X", Verdict.REJECT, "e")])
+        assert store.rows()[0].role_match is None
+
+
+def test_old_databases_get_the_role_match_column(tmp_path):
+    import sqlite3
+
+    path = tmp_path / "old.db"
+    conn = sqlite3.connect(path)
+    conn.executescript(
+        "CREATE TABLE decisions (job_key TEXT PRIMARY KEY, verdict TEXT NOT NULL, "
+        "reasons TEXT NOT NULL, score INTEGER, breakdown TEXT, explanation TEXT, rationale TEXT);"
+    )
+    conn.close()
+    Storage(path).close()
+    cols = [r[1] for r in sqlite3.connect(path).execute("PRAGMA table_info(decisions)")]
+    assert "role_match" in cols

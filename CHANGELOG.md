@@ -5,6 +5,12 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Role matching reads the title more carefully (still rule-based and explainable): the title is normalised, `role_synonyms` in `scoring.example.yaml` (also the built-in default) map titles such as "member of technical staff", "developer" or "swe" to "software engineer", and a whole target phrase scores higher than scattered words, a phrase only in a later part of the title, or a partial match. The report names the match that counted (`role match: ...`, and a `role_match` CSV column); the database gets a `role_match` column (older databases are upgraded on open). Weights still add up to 100 and no filter verdict changes.
+
+### Changed
+- Partial role matches only count words in the first part of the title, not in a team name after a dash, comma or bracket, so "Systems Engineer (Data Intelligence Team)" no longer counts as a data engineer; "Engineering Manager" is no longer read as an engineer title.
+
 ## [0.2.0] - 2026-11-25
 
 ### Known limitations

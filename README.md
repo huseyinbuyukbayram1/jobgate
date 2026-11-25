@@ -87,6 +87,29 @@ preferences:                            # used only by the score
 
 Scoring weights live in YAML too: copy `scoring.example.yaml` to `scoring.yaml`.
 
+### Role matching
+
+The role part of the score (30 points by default) compares the **title** with your
+`target_roles`. The title is normalised first (lower case, punctuation removed, "engineering" and
+"engineers" read as "engineer", `role_synonyms` such as "member of technical staff", "developer"
+or "swe" rewritten to "software engineer"), then split at " - ", commas and brackets into a first
+part ("Software Engineer") and later parts (a team or place). The best tier wins:
+
+| The title has | Share of the role points |
+|---------------|--------------------------|
+| the whole target phrase in the first part ("Software Engineer, Payments") | all |
+| all its words in the first part, in any order ("Software Quality Engineer") | 0.9 |
+| the whole phrase in a later part ("Platform Lead - Software Engineer") | 0.8 |
+| at least half of its words in the first part ("Backend Engineer"), but never more than 0.75 | that share |
+
+Words in a team name never count as a partial match, and a word from `avoid_roles` ("sales") sets
+the role points to 0. The report says which match counted (`role match: ...`, also in the CSV
+column `role_match`). The synonym list is in `scoring.example.yaml` and is also the built-in
+default; a `role_synonyms` section in your `scoring.yaml` replaces it. Synonyms apply to the first
+part of the title only, and not before words such as "relations" or "platform" ("Developer
+Relations" is not a developer job). Weights still add up to 100 and nothing here changes a filter
+verdict.
+
 ## Example output
 
 A real run with the example profile and the 10 example companies (public postings, trimmed):
@@ -97,7 +120,7 @@ Fetched 2277 postings from 10 of 10 companies (2277 new, 0 no longer listed).
 Filtered 2277 postings: 23 pass, 122 check, 2132 reject.
 Scored 145 postings.
 Wrote reports/report.md and reports/report.csv.
-  93 postings with a low role match (role 0) are listed apart in the report.
+  94 postings with a low role match (role 0) are listed apart in the report.
 ```
 
 `reports/report.md` has four sections: **Ranked matches**, **Needs a check** (each with the
@@ -106,7 +129,7 @@ reason code. A posting that passed the filter, or needs a check, but whose title
 your `target_roles` (role score 0) is listed under **Low role match**, with its score and
 breakdown (and the filter's reasons, if it needs a check), instead of under Ranked matches or
 Needs a check. In this example run that moved 23 postings that passed (sales, account,
-recruiting and design roles, so Ranked matches was empty) and 70 that needed a check. The 52 left
+recruiting and design roles, so Ranked matches was empty) and 71 that needed a check. The 51 left
 under **Needs a check** are mostly engineering-style titles, and all of them are from one company
 whose location field was vague. The numbers change every day because the
 boards change; the shape does not. The CSV has the same split in its `section` column
@@ -118,14 +141,16 @@ the sentence behind it):
 
 ```markdown
 ### 1. 77: role 30, technology 30, level 10, location 7 — [Software Engineer](https://boards.greenhouse.io/cloudflare/jobs/8212060?gh_jid=8212060)
-Cloudflare · Hybrid · posted 2026-09-18 · id `aca9de60` · status: found
+Cloudflare · Hybrid · posted 2026-09-18 · id `aca9de60` · status: found · role match: phrase "software engineer"
 
 - LOCATION_UNCLEAR: Hybrid
 ```
 
 `77: role 30, technology 30, level 10, location 7` reads as: 77 out of 100, made of 30 role
 points, 30 technology points, 10 level points and 7 location points (parts that scored zero are
-left out, except in **Low role match**, where `role 0` is always shown).
+left out, except in **Low role match**, where `role 0` is always shown). `role match:` names the
+title match that earned the role points (here the whole phrase of your target role); see
+[Role matching](#role-matching).
 
 ## How it works
 
@@ -239,8 +264,8 @@ numbers in `docs/*_report.md` are labelled preliminary and should not be quoted.
   both students and recent graduates are not rejected. See the
   [design notes](docs/issue_drafts/graduation-year-rule.md).
 - English-language postings only; rules are sentence-level regular expressions.
-- Scoring is keyword-based. A title like "Technical Support Engineer" earns partial role points
-  because it contains "engineer". It is a ranking aid, not a judgement of fit.
+- Scoring is rule-based and title-based. A title like "Technical Support Engineer" earns partial
+  role points because it contains "engineer". It is a ranking aid, not a judgement of fit.
 - Seniority is judged from the **title only**, with a fixed word list: Senior, Sr., Staff Engineer,
   Principal, Director, VP and Head of are rejected; Lead, Architect and Manager are sent to
   **check**. A senior posting with a neutral title ("Software Engineer" that asks for ten years in
@@ -248,15 +273,15 @@ numbers in `docs/*_report.md` are labelled preliminary and should not be quoted.
   the years. Because "Manager" and "Lead" go to check, non-engineering roles with those words
   show up in the check list, or under **Low role match** when their title matches none of your
   target roles.
-- Role matching is still keyword-based: a title earns role points when it shares enough words
-  with one of your `target_roles`. A posting with 0 role points is no longer listed under
-  **Ranked matches** (it goes to **Low role match**, still scored), but a non-engineering title
-  that happens to share a word with a target role still ranks, and a good title worded
-  differently from your `target_roles` falls into **Low role match**: in the example run that
-  included titles such as "Security Research Analyst", "Member of Technical Staff" and several
-  "Engineering Manager" postings. The threshold applies to postings that passed the filter and to
-  those that need a check; rejected ones are not listed anyway. If you set the `role` weight to 0
-  in `scoring.yaml`, every posting lands in **Low role match**.
+- Role matching reads the title only and does not understand it. It normalises the title, uses a
+  synonym list and gives more points for a whole phrase than for scattered or partial words
+  (see [Role matching](#role-matching)), but a good title worded in a way neither your
+  `target_roles` nor `role_synonyms` cover still gets 0 role points and lands in **Low role
+  match** (in the example run, for instance, "Security Research Analyst"), and a title that shares
+  a word with a target role ("Network Security Engineer" for "software engineer") still earns
+  partial points. A posting with 0 role points is not listed under **Ranked matches** or **Needs
+  a check**; it goes to **Low role match**, still scored. If you set the `role` weight to 0 in
+  `scoring.yaml`, every posting lands in **Low role match**.
 - Some boards write only "In-Office" or "Hybrid" in the location field; those go to **check**.
 - Only Greenhouse, Lever (global host) and Ashby are supported. Lever's EU host is not.
 - Test runs so far were on macOS with Python 3.14; CI runs Python 3.12 and 3.13.
@@ -268,8 +293,8 @@ numbers in `docs/*_report.md` are labelled preliminary and should not be quoted.
   false-rejection rate next to it.
 - Month-level graduation windows and season wording ("Summer 2027") for the graduation-year rule
   (see [docs/issue_drafts/graduation-year-rule.md](docs/issue_drafts/graduation-year-rule.md)).
-- Better role matching in the score. The "role 0 goes to Low role match" threshold is done; title
-  matching itself is still keyword-based (titles, not just keywords).
+- Role matching beyond the title: the job description is not read for the role, and the synonym
+  list is hand-written (the "role 0 goes to Low role match" threshold and title synonyms are done).
 - Recognise more video-requirement wordings and use city names found in the text when the
   location field is vague.
 - Lever EU host.

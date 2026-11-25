@@ -235,3 +235,136 @@ def test_scoring_the_example_profile_works():
         DEFAULT_WEIGHTS,
     )
     assert result.parts["role"] == 30
+
+
+# -- role matching: synonyms, normalisation and match tiers ------------------------------
+
+
+def role(title, profile=None, weights=DEFAULT_WEIGHTS):
+    return score(make_job(title=title), profile, weights)
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Member of Technical Staff - Workers AI",
+        "Software Developer",
+        "Web Developer",
+        "SWE, Payments",
+        "Software Development Engineer",
+    ],
+)
+def test_synonyms_of_a_target_role_get_full_role_points(title):
+    assert role(title).parts["role"] == 30
+
+
+def test_the_synonym_that_matched_is_named_in_the_role_match():
+    text = role("Member of Technical Staff - Workers AI").role_match
+    assert 'phrase "software engineer"' in text
+    assert 'via "member of technical staff"' in text
+
+
+def test_a_synonym_word_inside_another_role_is_not_expanded():
+    # "developer relations" is not a developer job
+    result = role("Developer Relations Engineer")
+    assert result.parts["role"] < 30
+    assert "via" not in result.role_match
+
+
+def test_titles_are_normalised_before_matching():
+    for title in ("Software Engineering Intern", "SOFTWARE-ENGINEER", "Software   Engineers"):
+        assert role(title).parts["role"] == 30, title
+
+
+def test_target_roles_are_normalised_the_same_way():
+    profile = make_profile(target_roles=["software developer"])
+    assert role("Software Engineer", profile).parts["role"] == 30
+
+
+def test_a_whole_phrase_in_the_title_beats_scattered_words_beats_a_later_part_beats_a_partial():
+    phrase = role("Software Engineer").parts["role"]
+    scattered = role("Software Quality Engineer").parts["role"]
+    later = role("Platform Lead - Software Engineer").parts["role"]
+    partial = role("Backend Engineer").parts["role"]
+    assert phrase == 30 and phrase > scattered > later > partial > 0
+
+
+def test_the_role_match_names_the_kind_of_match_that_counted():
+    assert 'phrase "software engineer"' in role("Software Engineer").role_match
+    assert 'all words of "software engineer"' in role("Software Quality Engineer").role_match
+    assert "later in the title" in role("Platform Lead - Software Engineer").role_match
+    assert 'part of "software engineer"' in role("Backend Engineer").role_match
+
+
+def test_words_in_a_team_name_do_not_make_a_role_match():
+    # the team "(Data Intelligence ...)" must not turn a systems engineer into a data engineer
+    result = role("Systems Engineer (Data Intelligence & Analytics Team)")
+    assert result.parts["role"] == 15
+    assert "part of" in result.role_match
+
+
+def test_no_match_and_avoided_roles_say_why():
+    assert role("Office Manager").role_match == ""
+    avoided = role("Sales Software Engineer")
+    assert avoided.parts["role"] == 0 and 'avoided word "sales"' in avoided.role_match
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Junior Software Engineer",
+        "Software Engineer Intern",
+        "Graduate Software Engineer",
+        "New Grad Software Engineer",
+        "Software Engineer I",
+        "Software Engineering Intern",
+    ],
+)
+def test_junior_and_intern_titles_keep_full_role_and_level_points(title):
+    result = role(title)
+    assert result.parts["role"] == 30
+    assert result.parts["level"] == 20
+
+
+def test_role_synonyms_come_from_the_weights_file(tmp_path):
+    path = tmp_path / "w.yaml"
+    path.write_text(
+        "weights: {role: 30, technology: 30, level: 20, location: 10, compensation: 10}\n"
+        "role_synonyms:\n  Software Engineer: [Code Wrangler]\n",
+        encoding="utf-8",
+    )
+    weights = load_weights(path)
+    assert role("Code Wrangler", weights=weights).parts["role"] == 30
+    assert role("Software Developer", weights=weights).parts["role"] < 30  # defaults replaced
+
+
+def test_role_synonyms_must_be_a_mapping_of_lists(tmp_path):
+    for body in ("role_synonyms: [a, b]\n", "role_synonyms: {software engineer: swe}\n"):
+        path = tmp_path / "w.yaml"
+        path.write_text(body, encoding="utf-8")
+        with pytest.raises(ScoringError, match="role_synonyms"):
+            load_weights(path)
+
+
+def test_synonyms_do_not_change_the_100_point_rule():
+    with pytest.raises(ValueError, match="100"):
+        Weights(role=40, role_synonyms={"software engineer": ["swe"]})
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Executive Assistant - Developer Platform",
+        "Platform Team - Developer",
+        "Engineering Manager, Bots & Fraud",
+        "Engineering Operations Lead",
+    ],
+)
+def test_product_names_team_names_and_managers_do_not_become_engineer_matches(title):
+    result = role(title)
+    assert result.parts["role"] == 0, (title, result.role_match)
+
+
+def test_a_developer_platform_title_is_not_rewritten_to_software_engineer():
+    result = role("Developer Platform Engineer")
+    assert "via" not in result.role_match and result.parts["role"] < 30
